@@ -15,6 +15,10 @@ import 'profile_screen.dart';
 import 'subscription_screen.dart';
 import 'feedback_screen.dart';
 import 'activity_feed_screen.dart';
+import 'search_screen.dart';
+import 'household_stats_screen.dart';
+import 'chore_templates_screen.dart';
+import 'invite_management_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -139,6 +143,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     ),
                   ),
                 IconButton(
+                  icon: const Icon(Icons.search_rounded),
+                  onPressed: () => _navigateToSearch(),
+                  tooltip: 'Search',
+                ),
+                IconButton(
                   icon: const Icon(Icons.people_outline_rounded),
                   onPressed: () => _navigateToMembers(),
                   tooltip: 'Household members',
@@ -150,6 +159,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     const PopupMenuItem(value: 'profile', child: Row(children: [Icon(Icons.person_rounded, size: 20), SizedBox(width: 12), Text('My Profile')])),
                     const PopupMenuItem(value: 'members', child: Row(children: [Icon(Icons.people_rounded, size: 20), SizedBox(width: 12), Text('Household Members')])),
                     const PopupMenuItem(value: 'activity', child: Row(children: [Icon(Icons.timeline_rounded, size: 20), SizedBox(width: 12), Text('Activity Feed')])),
+                    const PopupMenuItem(value: 'stats', child: Row(children: [Icon(Icons.bar_chart_rounded, size: 20), SizedBox(width: 12), Text('Household Stats')])),
+                    const PopupMenuItem(value: 'templates', child: Row(children: [Icon(Icons.assignment_rounded, size: 20), SizedBox(width: 12), Text('Chore Templates')])),
+                    const PopupMenuItem(value: 'invites', child: Row(children: [Icon(Icons.mail_rounded, size: 20), SizedBox(width: 12), Text('Invite Codes')])),
                     const PopupMenuItem(value: 'leaderboard', child: Row(children: [Icon(Icons.emoji_events_rounded, size: 20), SizedBox(width: 12), Text('Leaderboard')])),
                     const PopupMenuItem(value: 'rewards', child: Row(children: [Icon(Icons.card_giftcard_rounded, size: 20), SizedBox(width: 12), Text('Rewards')])),
                     const PopupMenuItem(value: 'achievements', child: Row(children: [Icon(Icons.military_tech_rounded, size: 20), SizedBox(width: 12), Text('Achievements')])),
@@ -169,6 +181,18 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   void _navigateToMembers() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const MembersScreen()),
+    );
+  }
+
+  void _navigateToSearch() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SearchScreen()),
+    );
+  }
+
+  void _navigateToStats() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const HouseholdStatsScreen()),
     );
   }
 
@@ -239,6 +263,15 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         break;
       case 'activity':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityFeedScreen()));
+        break;
+      case 'stats':
+        _navigateToStats();
+        break;
+      case 'templates':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ChoreTemplatesScreen()));
+        break;
+      case 'invites':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const InviteManagementScreen()));
         break;
       case 'feedback':
         _navigateToFeedback();
