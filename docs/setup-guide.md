@@ -108,3 +108,20 @@ Still needed from you:
 - Supabase service role key for backend/Railway.
 - Authorize.net API credentials later.
 - Firebase project credentials later.
+
+
+## Production API
+
+Railway API URL:
+
+```text
+https://honeydo-production-743d.up.railway.app
+```
+
+Health endpoint:
+
+```text
+https://honeydo-production-743d.up.railway.app/health
+```
+
+Verified healthy on 2026-05-19.
