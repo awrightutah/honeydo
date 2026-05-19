@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -21,18 +22,42 @@ Future<void> main() async {
   runApp(const HoneydoApp());
 }
 
-class HoneydoApp extends StatelessWidget {
+class HoneydoApp extends StatefulWidget {
   const HoneydoApp({super.key});
+
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
+  @override
+  State<HoneydoApp> createState() => _HoneydoAppState();
+}
+
+class _HoneydoAppState extends State<HoneydoApp> {
+  @override
+  void initState() {
+    super.initState();
+    _loadThemePreference();
+  }
+
+  Future<void> _loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = prefs.getBool('dark_mode') ?? false;
+    HoneydoApp.themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Honeydo',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      home: const AppEntryGate(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: HoneydoApp.themeNotifier,
+      builder: (context, currentMode, child) {
+        return MaterialApp(
+          title: 'Honeydo',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: currentMode,
+          home: const AppEntryGate(),
+        );
+      },
     );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'subscription_screen.dart';
+import 'feedback_screen.dart';
 
 /// Settings screen for profile, household, and app configuration.
 class SettingsScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _choreReminders = true;
   bool _mealReminders = true;
   bool _achievementNotifications = true;
+  bool _darkMode = false;
 
   @override
   void initState() {
@@ -71,6 +74,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _mealReminders = prefs[0]['meal_reminders'] ?? true;
         _achievementNotifications = prefs[0]['achievement_notifications'] ?? true;
       }
+
+      // Load dark mode preference
+      final sharedPrefs = await SharedPreferences.getInstance();
+      _darkMode = sharedPrefs.getBool('dark_mode') ?? false;
 
       setState(() => _isLoading = false);
     } catch (e) {
@@ -531,6 +538,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // Account section
           _buildSectionHeader('Account'),
+          SwitchListTile(
+            secondary: const Icon(Icons.dark_mode),
+            title: const Text('Dark Mode'),
+            subtitle: const Text('Switch between light and dark themes'),
+            value: _darkMode,
+            onChanged: (value) async {
+              setState(() => _darkMode = value);
+              final sharedPrefs = await SharedPreferences.getInstance();
+              await sharedPrefs.setBool('dark_mode', value);
+              // Update the app theme
+              HoneydoApp.themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.workspace_premium_rounded),
             title: const Text('Subscription'),
@@ -562,6 +582,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: Icon(Icons.info),
             title: Text('Honeydo'),
             subtitle: Text('Version 1.0.0'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.feedback),
+            title: const Text('Send Feedback'),
+            subtitle: const Text('Report bugs or request features'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FeedbackScreen()),
+            ),
           ),
           const ListTile(
             leading: Icon(Icons.description),

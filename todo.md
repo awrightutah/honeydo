@@ -23,7 +23,7 @@
 - [x] Enhanced leaderboard with streak display and empty state
 - [x] Pushed to GitHub and merged PR #4
 
-## Phase 11: Settings & Profile Enhancements
+## Phase 11: Settings & Profile Enhancements ✅ COMPLETE
 - [x] ProfileScreen with display name editing, avatar, stats
 - [x] SubscriptionScreen with plan comparison, payment UI, cancellation
 - [x] NotificationService for device tokens and preferences
@@ -44,7 +44,7 @@
 - [ ] Full Authorize.net integration with real payment processing
 - [ ] Webhook handler for payment events
 
-## Phase 14: Admin Dashboard
+## Phase 14: Admin Dashboard ✅ COMPLETE
 - [x] Admin API endpoints (stats, households, recipe moderation, feedback)
 - [x] Admin dashboard web app (HTML/CSS/JS)
 - [x] Login with admin secret authentication
@@ -54,9 +54,20 @@
 - [x] Feedback management
 - [x] Settings page with API configuration
 
+## Phase 15: Polish & Integration
+- [x] FeedbackScreen integrated into SettingsScreen and HomeShellScreen
+- [x] Dark mode toggle with SharedPreferences persistence
+- [x] HoneydoApp converted to StatefulWidget with ValueNotifier for theme switching
+- [ ] Supabase Storage policies for avatars and recipe images
+- [ ] Avatar upload with image_picker
+- [ ] Recipe image upload with image_picker
+- [ ] Offline support with local caching
+- [ ] Chore detail/edit screen
+- [ ] Meal plan recipe linking
+- [ ] Shopping list category management
+- [ ] Onboarding improvements
+
 ## Future Enhancements
-- [ ] Offline support with local storage
-- [ ] Dark mode toggle
 - [ ] Widget support (iOS/Android)
 - [ ] Apple Watch / Wear OS companion
 - [ ] Voice assistant integration

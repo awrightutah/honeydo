@@ -13,6 +13,7 @@ import 'point_history_screen.dart';
 import 'settings_screen.dart';
 import 'profile_screen.dart';
 import 'subscription_screen.dart';
+import 'feedback_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -153,6 +154,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     const PopupMenuItem(value: 'point_history', child: Row(children: [Icon(Icons.history_rounded, size: 20), SizedBox(width: 12), Text('Point History')])),
                     const PopupMenuDivider(),
                     const PopupMenuItem(value: 'subscription', child: Row(children: [Icon(Icons.workspace_premium_rounded, size: 20), SizedBox(width: 12), Text('Subscription')])),
+                    const PopupMenuItem(value: 'feedback', child: Row(children: [Icon(Icons.feedback_rounded, size: 20), SizedBox(width: 12), Text('Send Feedback')])),
                     const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings_rounded, size: 20), SizedBox(width: 12), Text('Settings')])),
                     const PopupMenuItem(value: 'signout', child: Row(children: [Icon(Icons.logout_rounded, size: 20), SizedBox(width: 12), Text('Sign Out')])),
                   ],
@@ -204,6 +206,12 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  void _navigateToFeedback() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const FeedbackScreen()),
+    );
+  }
+
   void _handleMenuAction(String action) {
     switch (action) {
       case 'profile':
@@ -226,6 +234,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         break;
       case 'subscription':
         _navigateToSubscription();
+        break;
+      case 'feedback':
+        _navigateToFeedback();
         break;
       case 'settings':
         _navigateToSettings();

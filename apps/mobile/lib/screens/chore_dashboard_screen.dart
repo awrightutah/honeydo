@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import 'chore_detail_screen.dart';
 
 class ChoreDashboardScreen extends StatefulWidget {
   const ChoreDashboardScreen({super.key});
@@ -373,81 +374,91 @@ class _ChoreCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      if (isChoreOfDay) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.honeyGold.withOpacity(.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('⭐', style: TextStyle(fontSize: 12)),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Flexible(
-                        child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: difficultyColor.withOpacity(.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '+$points pts${bonus > 0 ? ' +$bonus bonus' : ''}',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: difficultyColor),
-                  ),
-                ),
-              ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ChoreDetailScreen(choreId: chore['id']),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (room.isNotEmpty) ...[
-                  Icon(Icons.room_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(room, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  const SizedBox(width: 12),
-                ],
-                if (dueAt != null) ...[
-                  Icon(Icons.schedule_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatDate(dueAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: dueAt.isBefore(DateTime.now()) ? AppColors.coral : Theme.of(context).colorScheme.onSurfaceVariant,
+          ).then((_) => onComplete);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if (isChoreOfDay) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.honeyGold.withOpacity(.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('⭐', style: TextStyle(fontSize: 12)),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Flexible(
+                          child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: difficultyColor.withOpacity(.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '+$points pts${bonus > 0 ? ' +$bonus bonus' : ''}',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: difficultyColor),
                     ),
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: onComplete,
-                icon: const Icon(Icons.check_rounded, size: 18),
-                label: const Text('Mark complete'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(40),
-                  backgroundColor: AppColors.grassGreen,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  if (room.isNotEmpty) ...[
+                    Icon(Icons.room_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(room, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    const SizedBox(width: 12),
+                  ],
+                  if (dueAt != null) ...[
+                    Icon(Icons.schedule_rounded, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatDate(dueAt),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: dueAt.isBefore(DateTime.now()) ? AppColors.coral : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onComplete,
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: const Text('Mark complete'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(40),
+                    backgroundColor: AppColors.grassGreen,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -478,47 +489,57 @@ class _VerificationCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                ),
-                Text('+$points pts', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.honeyGold)),
-              ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ChoreDetailScreen(choreId: chore['id']),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Completed by $completedBy',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onReject,
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Reject'),
-                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.coral),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text('Approve'),
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.grassGreen),
+                  Text('+$points pts', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.honeyGold)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Completed by $completedBy',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onReject,
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text('Reject'),
+                      style: OutlinedButton.styleFrom(foregroundColor: AppColors.coral),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: onApprove,
+                      icon: const Icon(Icons.check_rounded, size: 18),
+                      label: const Text('Approve'),
+                      style: FilledButton.styleFrom(backgroundColor: AppColors.grassGreen),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
