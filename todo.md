@@ -58,11 +58,14 @@
 - [x] FeedbackScreen integrated into SettingsScreen and HomeShellScreen
 - [x] Dark mode toggle with SharedPreferences persistence
 - [x] HoneydoApp converted to StatefulWidget with ValueNotifier for theme switching
-- [ ] Supabase Storage policies for avatars and recipe images
-- [ ] Avatar upload with image_picker
-- [ ] Recipe image upload with image_picker
+- [x] Supabase Storage policies for avatars and recipe images
+- [x] Avatar upload with image_picker
+- [x] Recipe image upload with image_picker
+- [x] Chore detail/edit screen
+- [x] Activity feed screen + navigation integration
+- [x] Notification preferences screen with quiet hours
+- [x] Recipe detail screen (full-screen replacing bottom sheet)
 - [ ] Offline support with local caching
-- [ ] Chore detail/edit screen
 - [ ] Meal plan recipe linking
 - [ ] Shopping list category management
 - [ ] Onboarding improvements

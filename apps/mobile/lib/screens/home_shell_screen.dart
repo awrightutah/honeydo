@@ -14,6 +14,7 @@ import 'settings_screen.dart';
 import 'profile_screen.dart';
 import 'subscription_screen.dart';
 import 'feedback_screen.dart';
+import 'activity_feed_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -148,6 +149,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'profile', child: Row(children: [Icon(Icons.person_rounded, size: 20), SizedBox(width: 12), Text('My Profile')])),
                     const PopupMenuItem(value: 'members', child: Row(children: [Icon(Icons.people_rounded, size: 20), SizedBox(width: 12), Text('Household Members')])),
+                    const PopupMenuItem(value: 'activity', child: Row(children: [Icon(Icons.timeline_rounded, size: 20), SizedBox(width: 12), Text('Activity Feed')])),
                     const PopupMenuItem(value: 'leaderboard', child: Row(children: [Icon(Icons.emoji_events_rounded, size: 20), SizedBox(width: 12), Text('Leaderboard')])),
                     const PopupMenuItem(value: 'rewards', child: Row(children: [Icon(Icons.card_giftcard_rounded, size: 20), SizedBox(width: 12), Text('Rewards')])),
                     const PopupMenuItem(value: 'achievements', child: Row(children: [Icon(Icons.military_tech_rounded, size: 20), SizedBox(width: 12), Text('Achievements')])),
@@ -234,6 +236,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         break;
       case 'subscription':
         _navigateToSubscription();
+        break;
+      case 'activity':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityFeedScreen()));
         break;
       case 'feedback':
         _navigateToFeedback();
