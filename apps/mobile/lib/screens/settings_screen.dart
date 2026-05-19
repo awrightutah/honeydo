@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import 'profile_screen.dart';
+import 'subscription_screen.dart';
 
 /// Settings screen for profile, household, and app configuration.
 class SettingsScreen extends StatefulWidget {
@@ -456,8 +458,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? 'Adult · ${isAdmin ? 'Admin' : 'Member'}'
                   : 'Kid Profile',
             ),
-            trailing: const Icon(Icons.edit),
-            onTap: _showEditProfileSheet,
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ),
           ),
 
           // Household section
@@ -527,6 +531,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // Account section
           _buildSectionHeader('Account'),
+          ListTile(
+            leading: const Icon(Icons.workspace_premium_rounded),
+            title: const Text('Subscription'),
+            subtitle: Text(
+              _household?['tier'] == 'premium' ? 'Premium Plan' : 'Free Plan',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+            ),
+          ),
           ListTile(
             leading: const Icon(Icons.lock),
             title: const Text('Change Password'),

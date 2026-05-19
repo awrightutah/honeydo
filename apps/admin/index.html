@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honeydo Admin Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="bee">🐝</span>
+        <div>
+          <h1>Honeydo</h1>
+          <span class="badge">Admin</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="overview">
+          <span class="nav-icon">📊</span>
+          <span>Overview</span>
+        </a>
+        <a href="#" class="nav-item" data-page="households">
+          <span class="nav-icon">🏠</span>
+          <span>Households</span>
+        </a>
+        <a href="#" class="nav-item" data-page="recipes">
+          <span class="nav-icon">🍳</span>
+          <span>Recipe Moderation</span>
+        </a>
+        <a href="#" class="nav-item" data-page="feedback">
+          <span class="nav-icon">💬</span>
+          <span>Feedback</span>
+        </a>
+        <a href="#" class="nav-item" data-page="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <h2 id="pageTitle">Overview</h2>
+        <div class="topbar-actions">
+          <div class="connection-status" id="connectionStatus">
+            <span class="dot"></span>
+            <span>Connected</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Login Screen -->
+      <div class="page active" id="loginPage">
+        <div class="login-card">
+          <span class="login-bee">🐝</span>
+          <h2>Honeydo Admin</h2>
+          <p>Sign in with your admin credentials</p>
+          <form id="loginForm">
+            <div class="form-group">
+              <label for="loginEmail">Email</label>
+              <input type="email" id="loginEmail" placeholder="admin@honeydo.app" required />
+            </div>
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" placeholder="••••••••" required />
+            </div>
+            <div class="form-group">
+              <label for="adminSecret">Admin Secret</label>
+              <input type="password" id="adminSecret" placeholder="System admin key" required />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Overview Page -->
+      <div class="page" id="overviewPage">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #FFF3E0;">🏠</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statHouseholds">—</span>
+              <span class="stat-label">Households</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #E3F2FD;">👥</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statMembers">—</span>
+              <span class="stat-label">Members</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #E8F5E9;">✅</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statChores">—</span>
+              <span class="stat-label">Chores Completed</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #FCE4EC;">📖</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statRecipes">—</span>
+              <span class="stat-label">Recipes</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #F3E5F5;">⭐</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statPremium">—</span>
+              <span class="stat-label">Premium Subs</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #FFF8E1;">🕐</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statPending">—</span>
+              <span class="stat-label">Pending Reviews</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Households Page -->
+      <div class="page" id="householdsPage">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Members</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="householdsTable">
+              <tr><td colspan="5" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recipe Moderation Page -->
+      <div class="page" id="recipesPage">
+        <div class="recipe-cards" id="recipeCards">
+          <div class="empty-state">Loading pending recipes...</div>
+        </div>
+      </div>
+
+      <!-- Feedback Page -->
+      <div class="page" id="feedbackPage">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="feedbackTable">
+              <tr><td colspan="5" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Settings Page -->
+      <div class="page" id="settingsPage">
+        <div class="settings-card">
+          <h3>API Configuration</h3>
+          <div class="form-group">
+            <label>API URL</label>
+            <input type="text" id="settingsApiUrl" value="https://honeydo-production-743d.up.railway.app" />
+          </div>
+          <div class="form-group">
+            <label>Supabase URL</label>
+            <input type="text" id="settingsSupabaseUrl" value="https://knrdnshcbkvlopyzouee.supabase.co" />
+          </div>
+          <div class="form-group">
+            <label>Admin Secret</label>
+            <input type="password" id="settingsAdminSecret" />
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

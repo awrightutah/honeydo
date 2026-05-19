@@ -526,3 +526,180 @@ function normalizeRecipe(recipe, sourceUrl) {
 app.listen(env.PORT, () => {
   console.log(`Honeydo API listening on port ${env.PORT}`);
 });
+
+// ── Admin Endpoints ──────────────────────────────────────────────────────
+
+/**
+ * GET /admin/stats
+ * Get system-wide statistics (admin only).
+ * Header: Authorization: Bearer <supabase_access_token>
+ */
+app.get('/admin/stats', async (req, res) => {
+  const authHeader = req.header('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ ok: false, error: 'Missing authorization token' });
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired token' });
+
+  // Verify admin role — for now, check if user is owner of any household
+  const { data: adminMemberships } = await supabaseAdmin
+    .from('household_members')
+    .select('role')
+    .eq('auth_user_id', user.id)
+    .in('role', ['owner', 'admin'])
+    .limit(1);
+
+  // For system admin, we check app_metadata or a secret header
+  const adminSecret = req.header('x-admin-secret') || '';
+  const isSystemAdmin = adminSecret === env.ADMIN_SECRET;
+
+  if (!isSystemAdmin && (!adminMemberships || adminMemberships.length === 0)) {
+    return res.status(403).json({ ok: false, error: 'Admin access required' });
+  }
+
+  try {
+    const [households, members, chores, recipes, subs] = await Promise.all([
+      supabaseAdmin.from('households').select('id, tier, subscription_status, created_at', { count: 'exact' }),
+      supabaseAdmin.from('household_members').select('id, kind, role, is_active', { count: 'exact' }),
+      supabaseAdmin.from('chores').select('id, status', { count: 'exact' }),
+      supabaseAdmin.from('master_recipes').select('id, status', { count: 'exact' }),
+      supabaseAdmin.from('subscriptions').select('id, tier, status', { count: 'exact' }),
+    ]);
+
+    res.json({
+      ok: true,
+      stats: {
+        households: { total: households.count || 0 },
+        members: {
+          total: members.count || 0,
+          adults: members.data?.filter(m => m.kind === 'adult_auth_user').length || 0,
+          kids: members.data?.filter(m => m.kind === 'sub_profile').length || 0,
+        },
+        chores: {
+          total: chores.count || 0,
+          completed: chores.data?.filter(c => c.status === 'verified').length || 0,
+        },
+        recipes: {
+          total: recipes.count || 0,
+          pending: recipes.data?.filter(r => r.status === 'pending').length || 0,
+          approved: recipes.data?.filter(r => r.status === 'approved').length || 0,
+        },
+        subscriptions: {
+          total: subs.count || 0,
+          active: subs.data?.filter(s => s.status === 'active').length || 0,
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: 'Failed to fetch stats' });
+  }
+});
+
+/**
+ * GET /admin/households
+ * List all households (system admin only).
+ */
+app.get('/admin/households', async (req, res) => {
+  const adminSecret = req.header('x-admin-secret') || '';
+  if (adminSecret !== env.ADMIN_SECRET) {
+    return res.status(403).json({ ok: false, error: 'System admin access required' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('households')
+    .select('*, household_members(count)')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) return res.status(500).json({ ok: false, error: 'Failed to fetch households' });
+  res.json({ ok: true, households: data });
+});
+
+/**
+ * GET /admin/recipes/pending
+ * List pending recipe submissions (system admin only).
+ */
+app.get('/admin/recipes/pending', async (req, res) => {
+  const adminSecret = req.header('x-admin-secret') || '';
+  if (adminSecret !== env.ADMIN_SECRET) {
+    return res.status(403).json({ ok: false, error: 'System admin access required' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('master_recipes')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) return res.status(500).json({ ok: false, error: 'Failed to fetch pending recipes' });
+  res.json({ ok: true, recipes: data });
+});
+
+/**
+ * POST /admin/recipes/:id/approve
+ * Approve a pending recipe submission.
+ */
+app.post('/admin/recipes/:id/approve', async (req, res) => {
+  const adminSecret = req.header('x-admin-secret') || '';
+  if (adminSecret !== env.ADMIN_SECRET) {
+    return res.status(403).json({ ok: false, error: 'System admin access required' });
+  }
+
+  const { id } = req.params;
+  const { data, error } = await supabaseAdmin
+    .from('master_recipes')
+    .update({ status: 'approved', approved_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ ok: false, error: 'Failed to approve recipe' });
+  res.json({ ok: true, recipe: data });
+});
+
+/**
+ * POST /admin/recipes/:id/reject
+ * Reject a pending recipe submission.
+ * Body: { reason?: string }
+ */
+app.post('/admin/recipes/:id/reject', async (req, res) => {
+  const adminSecret = req.header('x-admin-secret') || '';
+  if (adminSecret !== env.ADMIN_SECRET) {
+    return res.status(403).json({ ok: false, error: 'System admin access required' });
+  }
+
+  const { id } = req.params;
+  const { reason } = req.body ?? {};
+
+  const { data, error } = await supabaseAdmin
+    .from('master_recipes')
+    .update({ status: 'rejected', rejection_reason: reason || null })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ ok: false, error: 'Failed to reject recipe' });
+  res.json({ ok: true, recipe: data });
+});
+
+/**
+ * GET /admin/feedback
+ * List all feedback submissions.
+ */
+app.get('/admin/feedback', async (req, res) => {
+  const adminSecret = req.header('x-admin-secret') || '';
+  if (adminSecret !== env.ADMIN_SECRET) {
+    return res.status(403).json({ ok: false, error: 'System admin access required' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('feedback_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) return res.status(500).json({ ok: false, error: 'Failed to fetch feedback' });
+  res.json({ ok: true, feedback: data });
+});

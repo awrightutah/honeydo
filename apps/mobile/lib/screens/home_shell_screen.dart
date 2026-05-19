@@ -11,6 +11,8 @@ import 'rewards_screen.dart';
 import 'achievements_screen.dart';
 import 'point_history_screen.dart';
 import 'settings_screen.dart';
+import 'profile_screen.dart';
+import 'subscription_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -143,12 +145,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   icon: const Icon(Icons.more_horiz_rounded),
                   onSelected: _handleMenuAction,
                   itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'profile', child: Row(children: [Icon(Icons.person_rounded, size: 20), SizedBox(width: 12), Text('My Profile')])),
                     const PopupMenuItem(value: 'members', child: Row(children: [Icon(Icons.people_rounded, size: 20), SizedBox(width: 12), Text('Household Members')])),
                     const PopupMenuItem(value: 'leaderboard', child: Row(children: [Icon(Icons.emoji_events_rounded, size: 20), SizedBox(width: 12), Text('Leaderboard')])),
                     const PopupMenuItem(value: 'rewards', child: Row(children: [Icon(Icons.card_giftcard_rounded, size: 20), SizedBox(width: 12), Text('Rewards')])),
                     const PopupMenuItem(value: 'achievements', child: Row(children: [Icon(Icons.military_tech_rounded, size: 20), SizedBox(width: 12), Text('Achievements')])),
                     const PopupMenuItem(value: 'point_history', child: Row(children: [Icon(Icons.history_rounded, size: 20), SizedBox(width: 12), Text('Point History')])),
                     const PopupMenuDivider(),
+                    const PopupMenuItem(value: 'subscription', child: Row(children: [Icon(Icons.workspace_premium_rounded, size: 20), SizedBox(width: 12), Text('Subscription')])),
                     const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings_rounded, size: 20), SizedBox(width: 12), Text('Settings')])),
                     const PopupMenuItem(value: 'signout', child: Row(children: [Icon(Icons.logout_rounded, size: 20), SizedBox(width: 12), Text('Sign Out')])),
                   ],
@@ -161,6 +165,12 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   void _navigateToMembers() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const MembersScreen()),
+    );
+  }
+
+  void _navigateToProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
     );
   }
 
@@ -188,8 +198,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  void _navigateToSubscription() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+    );
+  }
+
   void _handleMenuAction(String action) {
     switch (action) {
+      case 'profile':
+        _navigateToProfile();
+        break;
       case 'members':
         _navigateToMembers();
         break;
@@ -204,6 +223,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         break;
       case 'point_history':
         _navigateToPointHistory();
+        break;
+      case 'subscription':
+        _navigateToSubscription();
         break;
       case 'settings':
         _navigateToSettings();
