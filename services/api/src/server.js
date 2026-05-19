@@ -21,8 +21,114 @@ app.use(express.json({
   },
 }));
 
+app.get('/', (_req, res) => {
+  res.type('html').send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honeydo API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #FFF8F0 0%, #FDEBD0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #2D3436;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 48px;
+      max-width: 520px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    }
+    .bee { font-size: 64px; margin-bottom: 16px; }
+    h1 { font-size: 28px; margin-bottom: 8px; color: #2D3436; }
+    .tagline { color: #636E72; font-size: 16px; margin-bottom: 32px; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #E8F8F5;
+      color: #00B894;
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    .status .dot {
+      width: 8px; height: 8px;
+      background: #00B894;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .endpoints {
+      text-align: left;
+      background: #F8F9FA;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 8px;
+    }
+    .endpoints h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #B2BEC3;
+      margin-bottom: 12px;
+    }
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      font-size: 14px;
+      border-bottom: 1px solid #ECEEF0;
+    }
+    .endpoint:last-child { border-bottom: none; }
+    .method {
+      font-weight: 700;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      min-width: 44px;
+      text-align: center;
+    }
+    .get { background: #D5F5E3; color: #1E8449; }
+    .post { background: #D6EAF8; color: #2471A3; }
+    .path { font-family: 'SF Mono', 'Fira Code', monospace; color: #2D3436; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="bee">🐝</div>
+    <h1>Honeydo API</h1>
+    <p class="tagline">Household chore management &amp; meal planning</p>
+    <div class="status"><span class="dot"></span> Operational</div>
+    <div class="endpoints">
+      <h3>Available Endpoints</h3>
+      <div class="endpoint"><span class="method get">GET</span><span class="path">/health</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/recipes/import</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/webhooks/authorize-net</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/jobs/send-notifications</span></div>
+    </div>
+  </div>
+</body>
+</html>`);
+});
+
 app.get('/health', async (_req, res) => {
-  res.json({ ok: true, service: 'homehub-api', environment: env.NODE_ENV, timestamp: new Date().toISOString() });
+  res.json({ ok: true, service: 'honeydo-api', environment: env.NODE_ENV, timestamp: new Date().toISOString() });
 });
 
 app.post('/webhooks/authorize-net', async (req, res) => {
@@ -78,7 +184,7 @@ function verifyAuthorizeNetSignature(rawBody, header) {
 }
 
 async function importRecipeFromUrl(url) {
-  const response = await fetch(url, { headers: { 'user-agent': 'HomeHubRecipeImporter/0.1' } });
+  const response = await fetch(url, { headers: { 'user-agent': 'HoneydoRecipeImporter/0.1' } });
   if (!response.ok) throw new Error(`Failed to fetch recipe URL: ${response.status}`);
 
   const html = await response.text();
@@ -143,5 +249,5 @@ function normalizeRecipe(recipe, sourceUrl) {
 }
 
 app.listen(env.PORT, () => {
-  console.log(`HomeHub API listening on port ${env.PORT}`);
+  console.log(`Honeydo API listening on port ${env.PORT}`);
 });
