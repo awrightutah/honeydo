@@ -1,0 +1,15 @@
+{
+  "name": "honeydo-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "install:api": "npm --prefix services/api install",
+    "start": "npm --prefix services/api start",
+    "dev:api": "npm --prefix services/api run dev",
+    "build:admin": "npm --prefix apps/admin-dashboard install && npm --prefix apps/admin-dashboard run build",
+    "check": "./scripts/check-project.sh && npm --prefix services/api run lint"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

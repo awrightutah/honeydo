@@ -14,8 +14,8 @@
 ## Phase 2 — Supabase Setup
 - [x] Create/prepare Supabase project
 - [x] Apply database schema and Row Level Security policies
-- [ ] Configure Supabase Auth
-- [ ] Configure Supabase Storage buckets for avatars, recipe images, and chore verification photos
+- [x] Configure Supabase Auth
+- [x] Configure Supabase Storage buckets for avatars, recipe images, and chore verification photos
 - [x] Store Supabase keys in local environment templates
 
 ## Phase 3 — Backend API
@@ -48,3 +48,9 @@
 - [x] Verify project structure exists
 - [x] Verify docs and schema files are present
 - [x] Summarize next build milestone
+
+
+## Phase 8 — Railway Deployment Fix
+- [ ] Add root Railway compatibility config for monorepo deploy detection
+- [ ] Push Railway fix to GitHub main
+- [ ] Ask user to redeploy Railway and verify /health
