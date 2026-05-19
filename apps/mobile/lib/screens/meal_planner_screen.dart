@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import 'recipe_detail_screen.dart';
 
 /// Full meal planner screen with 7-day week view, meal type selection,
 /// recipe linking, and custom meal entry.
@@ -379,6 +380,8 @@ class _MealSlot extends StatelessWidget {
     final cook = meal['cook']?['display_name'];
     final servings = meal['servings'];
     final notes = meal['notes'];
+    final recipeId = meal['recipe_id'] as String?;
+    final hasRecipe = recipeId != null;
 
     return Dismissible(
       key: ValueKey(meal['id']),
@@ -393,42 +396,70 @@ class _MealSlot extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_outline_rounded, color: AppColors.coral),
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withOpacity(.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(.2)),
-        ),
-        child: Row(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  if (cook != null || servings != null)
-                    Text(
-                      [
-                        if (cook != null) 'Cook: $cook',
-                        if (servings != null) '$servings servings',
-                      ].join(' · '),
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+      child: InkWell(
+        onTap: hasRecipe
+            ? () {
+                // Navigate to recipe detail using the recipe_id
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RecipeDetailScreen(
+                      recipeId: recipeId,
+                      isHousehold: true,
                     ),
-                  if (notes != null && notes.toString().isNotEmpty)
-                    Text(notes, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
+                  ),
+                );
+              }
+            : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(.2)),
+          ),
+          child: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        ),
+                        if (hasRecipe) ...[
+                          Icon(Icons.menu_book_rounded, size: 14, color: color),
+                          const SizedBox(width: 2),
+                          Icon(Icons.open_in_new_rounded, size: 12, color: Colors.grey.shade400),
+                        ],
+                      ],
+                    ),
+                    if (cook != null || servings != null)
+                      Text(
+                        [
+                          if (cook != null) 'Cook: $cook',
+                          if (servings != null) '$servings servings',
+                        ].join(' · '),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    if (notes != null && notes.toString().isNotEmpty)
+                      Text(notes, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, size: 16),
-              onPressed: onDelete,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 16),
+                onPressed: onDelete,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -503,6 +534,7 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
   final _notesController = TextEditingController();
   String? _assignedCookId;
   bool _isLoading = false;
+  bool _addIngredientsToList = true;
 
   static const _mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'other'];
   static const _mealEmoji = {'breakfast': '🌅', 'lunch': '☀️', 'dinner': '🌙', 'snack': '🍎', 'other': '🍽️'};
@@ -535,7 +567,7 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
     setState(() => _isLoading = true);
 
     try {
-      await Supabase.instance.client.from('meal_plans').insert({
+      final mealPlanResult = await Supabase.instance.client.from('meal_plans').insert({
         'household_id': widget.householdId,
         'planned_for': widget.day.toIso8601String().substring(0, 10),
         'meal_type': _mealType,
@@ -545,7 +577,64 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
         'servings': int.tryParse(_servingsController.text.trim()),
         'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         'created_by_member_id': widget.myMemberId,
-      });
+      }).select().single();
+
+      // Auto-add recipe ingredients to shopping list
+      if (_addIngredientsToList && _selectedRecipeId != null) {
+        try {
+          final recipe = await Supabase.instance.client
+              .from('household_recipes')
+              .select('ingredients')
+              .eq('id', _selectedRecipeId!)
+              .single();
+
+          final ingredients = recipe['ingredients'] as List<dynamic>? ?? [];
+          if (ingredients.isNotEmpty) {
+            // Find or create active shopping list
+            final lists = await Supabase.instance.client
+                .from('shopping_lists')
+                .select('id')
+                .eq('household_id', widget.householdId)
+                .eq('is_active', true)
+                .limit(1);
+
+            String shoppingListId;
+            if (lists.isNotEmpty) {
+              shoppingListId = lists[0]['id'];
+            } else {
+              final newList = await Supabase.instance.client
+                  .from('shopping_lists')
+                  .insert({
+                    'household_id': widget.householdId,
+                    'name': 'Current Shopping List',
+                    'is_active': true,
+                    'created_by_member_id': widget.myMemberId,
+                  })
+                  .select()
+                  .single();
+              shoppingListId = newList['id'];
+            }
+
+            final mealPlanId = mealPlanResult['id'];
+            final inserts = ingredients.map((ing) {
+              final text = ing is String ? ing : (ing['raw']?.toString() ?? ing.toString());
+              return {
+                'household_id': widget.householdId,
+                'shopping_list_id': shoppingListId,
+                'name': text,
+                'purchased': false,
+                'source_recipe_id': _selectedRecipeId,
+                'source_meal_plan_id': mealPlanId,
+                'added_by_member_id': widget.myMemberId,
+              };
+            }).toList();
+
+            await Supabase.instance.client.from('shopping_items').insert(inserts);
+          }
+        } catch (_) {
+          // Non-critical: ingredients failed to add, but meal plan was created
+        }
+      }
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -682,6 +771,18 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
                 hintText: 'Any special instructions or preferences',
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Auto-add ingredients to shopping list
+            if (_selectedRecipeId != null)
+              SwitchListTile(
+                value: _addIngredientsToList,
+                onChanged: (v) => setState(() => _addIngredientsToList = v),
+                title: const Text('Add ingredients to shopping list', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Recipe ingredients will be added to your active shopping list.'),
+                secondary: const Icon(Icons.add_shopping_cart_rounded),
+                contentPadding: EdgeInsets.zero,
+              ),
             const SizedBox(height: 24),
 
             FilledButton(

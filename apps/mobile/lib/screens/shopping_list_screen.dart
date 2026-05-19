@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import 'shopping_category_screen.dart';
 
 /// Full shopping list screen with multi-store support, manual entry,
-/// recipe ingredient import, and purchased tracking.
+/// recipe ingredient import, purchased tracking, and category grouping.
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key});
 
@@ -19,8 +20,45 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   List<Map<String, dynamic>> _stores = [];
   List<Map<String, dynamic>> _householdRecipes = [];
   bool _isLoading = true;
+  bool _groupByCategory = true;
 
   String? _activeListId;
+
+  static const _categoryOrder = [
+    'Produce', 'Dairy', 'Meat & Seafood', 'Pantry', 'Frozen',
+    'Bakery', 'Beverages', 'Snacks', 'Household', 'Personal Care',
+    'Pet Supplies', 'Other',
+  ];
+
+  static const _categoryIcons = {
+    'Produce': Icons.eco_rounded,
+    'Dairy': Icons.water_drop_rounded,
+    'Meat & Seafood': Icons.set_meal_rounded,
+    'Pantry': Icons.inventory_2_rounded,
+    'Frozen': Icons.ac_unit_rounded,
+    'Bakery': Icons.bakery_dining_rounded,
+    'Beverages': Icons.local_cafe_rounded,
+    'Snacks': Icons.cookie_rounded,
+    'Household': Icons.cleaning_services_rounded,
+    'Personal Care': Icons.spa_rounded,
+    'Pet Supplies': Icons.pets_rounded,
+    'Other': Icons.more_horiz_rounded,
+  };
+
+  static const _categoryColors = {
+    'Produce': Color(0xFF4CAF50),
+    'Dairy': Color(0xFF42A5F5),
+    'Meat & Seafood': Color(0xFFEF5350),
+    'Pantry': Color(0xFFFF9800),
+    'Frozen': Color(0xFF29B6F6),
+    'Bakery': Color(0xFFD4A373),
+    'Beverages': Color(0xFF7E57C2),
+    'Snacks': Color(0xFFFFCA28),
+    'Household': Color(0xFF78909C),
+    'Personal Care': Color(0xFFEC407A),
+    'Pet Supplies': Color(0xFF8D6E63),
+    'Other': Color(0xFF9E9E9E),
+  };
 
   @override
   void initState() {
@@ -70,7 +108,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       _stores = List<Map<String, dynamic>>.from(results[1]);
       _householdRecipes = List<Map<String, dynamic>>.from(results[2]);
 
-      // Set active list to the first one or create default
       if (_shoppingLists.isNotEmpty) {
         _activeListId = _shoppingLists.first['id'];
       } else {
@@ -187,6 +224,69 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
+  Future<void> _clearPurchasedItems() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear purchased items?'),
+        content: const Text('This will remove all checked-off items from the list.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || _activeListId == null) return;
+
+    try {
+      await Supabase.instance.client
+          .from('shopping_items')
+          .delete()
+          .eq('shopping_list_id', _activeListId!)
+          .eq('purchased', true);
+      _loadShoppingItems();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not clear items.')),
+        );
+      }
+    }
+  }
+
+  /// Group items by category for display
+  Map<String, List<Map<String, dynamic>>> _groupItemsByCategory(List<Map<String, dynamic>> items) {
+    final groups = <String, List<Map<String, dynamic>>>{};
+    for (final item in items) {
+      final category = (item['category'] as String?) ?? 'Other';
+      groups.putIfAbsent(category, () => []).add(item);
+    }
+    return groups;
+  }
+
+  /// Get sorted category names
+  List<String> _sortedCategories(Map<String, List<Map<String, dynamic>>> groups) {
+    final cats = groups.keys.toList();
+    cats.sort((a, b) {
+      final ai = _categoryOrder.indexOf(a);
+      final bi = _categoryOrder.indexOf(b);
+      // Default categories first, in defined order; custom categories last, alphabetically
+      if (ai >= 0 && bi >= 0) return ai.compareTo(bi);
+      if (ai >= 0) return -1;
+      if (bi >= 0) return 1;
+      return a.compareTo(b);
+    });
+    return cats;
+  }
+
   @override
   Widget build(BuildContext context) {
     final unpurchasedItems = _shoppingItems.where((i) => !(i['purchased'] ?? false)).toList();
@@ -196,6 +296,42 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       appBar: AppBar(
         title: const Text('Shopping List 🛒'),
         actions: [
+          IconButton(
+            icon: Icon(_groupByCategory ? Icons.list_rounded : Icons.category_rounded),
+            onPressed: () => setState(() => _groupByCategory = !_groupByCategory),
+            tooltip: _groupByCategory ? 'Show as list' : 'Group by category',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (action) {
+              switch (action) {
+                case 'categories':
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ShoppingCategoryScreen()));
+                  break;
+                case 'clear':
+                  _clearPurchasedItems();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'categories',
+                child: Row(children: [
+                  Icon(Icons.category_rounded, size: 20),
+                  SizedBox(width: 12),
+                  Text('Manage Categories'),
+                ]),
+              ),
+              if (purchasedItems.isNotEmpty)
+                const PopupMenuItem(
+                  value: 'clear',
+                  child: Row(children: [
+                    Icon(Icons.cleaning_services_rounded, size: 20),
+                    SizedBox(width: 12),
+                    Text('Clear Purchased'),
+                  ]),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadData,
@@ -252,11 +388,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...unpurchasedItems.map((item) => _ShoppingItemCard(
-                          item: item,
-                          onToggle: (v) => _togglePurchased(item['id'], v),
-                          onDelete: () => _deleteItem(item['id']),
-                        )),
+                    if (_groupByCategory)
+                      ..._buildCategorizedItems(unpurchasedItems)
+                    else
+                      ...unpurchasedItems.map((item) => _ShoppingItemCard(
+                            item: item,
+                            onToggle: (v) => _togglePurchased(item['id'], v),
+                            onDelete: () => _deleteItem(item['id']),
+                          )),
                     const SizedBox(height: 24),
                   ],
 
@@ -308,6 +447,73 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
     );
   }
+
+  /// Build category-grouped item sections
+  List<Widget> _buildCategorizedItems(List<Map<String, dynamic>> items) {
+    final groups = _groupItemsByCategory(items);
+    final sortedCats = _sortedCategories(groups);
+    final widgets = <Widget>[];
+
+    for (final cat in sortedCats) {
+      final catItems = groups[cat]!;
+      final color = _categoryColors[cat] ?? Colors.grey;
+      final icon = _categoryIcons[cat] ?? Icons.label_rounded;
+
+      widgets.add(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Category header
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8, top: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, size: 16, color: color),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    cat,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(.1),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      '${catItems.length}',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Items in category
+            ...catItems.map((item) => _ShoppingItemCard(
+                  item: item,
+                  onToggle: (v) => _togglePurchased(item['id'], v),
+                  onDelete: () => _deleteItem(item['id']),
+                )),
+            const SizedBox(height: 4),
+          ],
+        ),
+      );
+    }
+
+    return widgets;
+  }
 }
 
 class _ShoppingItemCard extends StatelessWidget {
@@ -343,7 +549,7 @@ class _ShoppingItemCard extends StatelessWidget {
         child: const Icon(Icons.delete_outline_rounded, color: AppColors.coral),
       ),
       child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 6),
         child: CheckboxListTile(
           value: purchased,
           onChanged: (v) => onToggle(v ?? false),
@@ -403,18 +609,23 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
   final _unitController = TextEditingController();
-  final _categoryController = TextEditingController();
+  String? _selectedCategory;
   String? _selectedStoreId;
   bool _isLoading = false;
 
-  static const _categories = ['Produce', 'Dairy', 'Meat', 'Pantry', 'Frozen', 'Bakery', 'Beverages', 'Snacks', 'Household', 'Other'];
+  static const _categories = ['Produce', 'Dairy', 'Meat & Seafood', 'Pantry', 'Frozen', 'Bakery', 'Beverages', 'Snacks', 'Household', 'Personal Care', 'Pet Supplies', 'Other'];
+
+  static const _categoryEmojis = {
+    'Produce': '🥬', 'Dairy': '🥛', 'Meat & Seafood': '🥩', 'Pantry': '🫘',
+    'Frozen': '🧊', 'Bakery': '🍞', 'Beverages': '☕', 'Snacks': '🍪',
+    'Household': '🧹', 'Personal Care': '🧴', 'Pet Supplies': '🐾', 'Other': '📦',
+  };
 
   @override
   void dispose() {
     _nameController.dispose();
     _quantityController.dispose();
     _unitController.dispose();
-    _categoryController.dispose();
     super.dispose();
   }
 
@@ -442,7 +653,7 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
         'unit': unit.isEmpty ? null : unit,
         'display_quantity': displayQuantity,
         'store_id': _selectedStoreId,
-        'category': _categoryController.text.trim().isEmpty ? null : _categoryController.text.trim(),
+        'category': _selectedCategory,
         'purchased': false,
         'added_by_member_id': widget.myMemberId,
       });
@@ -476,6 +687,7 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
+              autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Item name',
                 prefixIcon: Icon(Icons.shopping_basket_rounded),
@@ -516,6 +728,28 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
             ),
             const SizedBox(height: 16),
 
+            // Category selector with emoji chips
+            Text('Category', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 42,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _categories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, i) {
+                  final cat = _categories[i];
+                  final selected = _selectedCategory == cat;
+                  return ChoiceChip(
+                    label: Text('${_categoryEmojis[cat]} ${cat}'),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _selectedCategory = selected ? null : cat),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Store
             DropdownButtonFormField<String>(
               value: _selectedStoreId,
@@ -532,22 +766,6 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
                 )),
               ],
               onChanged: (v) => setState(() => _selectedStoreId = v),
-            ),
-            const SizedBox(height: 16),
-
-            // Category
-            DropdownButtonFormField<String>(
-              value: _categoryController.text.trim().isEmpty ? null : _categoryController.text.trim(),
-              decoration: const InputDecoration(
-                labelText: 'Category (optional)',
-                prefixIcon: Icon(Icons.label_outline_rounded),
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('No category')),
-                ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
-              ],
-              onChanged: (v) => setState(() => _categoryController.text = v ?? ''),
             ),
             const SizedBox(height: 24),
 
@@ -625,7 +843,26 @@ class _AddFromRecipeSheetState extends State<_AddFromRecipeSheet> {
 
             // Ingredients list
             if (ingredients.isNotEmpty) ...[
-              Text('Select ingredients to add:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Select ingredients:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        if (_selectedIngredients.length == ingredients.length) {
+                          _selectedIngredients = [];
+                        } else {
+                          _selectedIngredients = ingredients.map((ing) {
+                            return ing is String ? ing : (ing['raw']?.toString() ?? ing.toString());
+                          }).toList().cast<String>();
+                        }
+                      });
+                    },
+                    child: Text(_selectedIngredients.length == ingredients.length ? 'Deselect all' : 'Select all'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               Container(
                 constraints: const BoxConstraints(maxHeight: 200),

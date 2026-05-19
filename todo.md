@@ -65,10 +65,10 @@
 - [x] Activity feed screen + navigation integration
 - [x] Notification preferences screen with quiet hours
 - [x] Recipe detail screen (full-screen replacing bottom sheet)
-- [ ] Offline support with local caching
-- [ ] Meal plan recipe linking
-- [ ] Shopping list category management
-- [ ] Onboarding improvements
+- [x] Offline support with local caching (OfflineService + ConnectivityBanner)
+- [x] Meal plan recipe linking (tap to view recipe, auto-add ingredients to shopping list)
+- [x] Shopping list category management (group by category, category management screen)
+- [x] Onboarding improvements (animated illustrations, feature chips, skip button)
 
 ## Future Enhancements
 - [ ] Widget support (iOS/Android)
