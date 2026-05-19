@@ -32,4 +32,4 @@
 - [x] Rename package from homehub_mobile to honeydo_mobile
 
 ### 8. Git & Deploy
-- [ ] Commit and push all Phase 9 changes
+- [x] Commit and push all Phase 9 changes
