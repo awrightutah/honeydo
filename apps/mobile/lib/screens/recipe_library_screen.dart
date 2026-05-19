@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../theme/app_theme.dart';
+import 'recipe_detail_screen.dart';
 
 /// Full recipe library screen with household recipe management,
 /// master recipe browsing, URL import, and shopping list integration.
@@ -964,202 +965,15 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
   }
 
   Future<void> _showRecipeDetail(Map<String, dynamic> recipe) async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (recipe['image_url'] != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    recipe['image_url'],
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 200,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.restaurant, size: 64),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      recipe['title'] ?? 'Untitled',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (recipe['is_favorite'] == true)
-                    const Icon(Icons.favorite, color: Colors.red),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (recipe['description'] != null)
-                Text(
-                  recipe['description'],
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (recipe['difficulty'] != null)
-                    Chip(
-                      label: Text(recipe['difficulty']),
-                      backgroundColor: AppColors.honeyGold.withOpacity(0.2),
-                    ),
-                  if (recipe['cuisine'] != null)
-                    Chip(
-                      label: Text(recipe['cuisine']),
-                      backgroundColor: AppColors.skyBlue.withOpacity(0.2),
-                    ),
-                  if (recipe['servings'] != null)
-                    Chip(
-                      label: Text('${recipe['servings']} servings'),
-                      avatar: const Icon(Icons.people, size: 16),
-                    ),
-                  if (recipe['prep_time_minutes'] != null)
-                    Chip(
-                      label: Text('${recipe['prep_time_minutes']} min prep'),
-                      avatar: const Icon(Icons.schedule, size: 16),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Ingredients',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Builder(builder: (context) {
-                final ingredients = recipe['ingredients'] as List<dynamic>? ?? [];
-                if (ingredients.isEmpty) return const Text('No ingredients listed');
-                return Column(
-                  children: ingredients.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final ing = entry.value;
-                  final ingMap = ing is Map ? ing : {'raw': ing.toString()};
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(top: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.honeyGold,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            ingMap['raw'] ?? '',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                );
-              }),
-              const SizedBox(height: 24),
-              const Text(
-                'Steps',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Builder(builder: (context) {
-                final steps = recipe['steps'] as List<dynamic>? ?? [];
-                if (steps.isEmpty) return const Text('No steps listed');
-                return Column(
-                  children: steps.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final step = entry.value;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.honeyGold,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            step.toString(),
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                ),
-              }),
-              const SizedBox(height: 24),
-              if (recipe['source'] != 'master_library')
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _addIngredientsToShoppingList(recipe),
-                        icon: const Icon(Icons.shopping_cart),
-                        label: const Text('Add to Shopping List'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.grassGreen,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
+    final isHousehold = recipe.containsKey('household_id') && recipe['household_id'] != null;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RecipeDetailScreen(
+          recipeId: recipe['id'],
+          isHouseholdRecipe: isHousehold,
         ),
       ),
-    );
+    ).then((_) => _loadData());
   }
 
   @override

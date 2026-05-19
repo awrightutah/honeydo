@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
+import '../services/image_upload_service.dart';
 
 /// Profile screen for managing display name, avatar, and viewing member details.
 class ProfileScreen extends StatefulWidget {
@@ -110,25 +112,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateAvatar() async {
-    // In a full implementation, this would use image_picker to select
-    // a photo and upload to Supabase Storage 'avatars' bucket.
-    // For now, show a dialog explaining the feature.
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Profile Photo'),
-        content: const Text(
-          'To upload a profile photo, the app needs the image_picker package and '
-          'a configured Supabase Storage bucket. This will be available in a future update.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    try {
+      final source = await ImageUploadService.showImageSourceDialog(context);
+      if (source == null) return; // User cancelled
+
+      final imageUrl = await ImageUploadService.uploadAvatar(
+        source: source == 'camera' ? ImageSource.camera : ImageSource.gallery,
+      );
+
+      if (imageUrl != null) {
+        // Update the avatar_url on the membership record
+        await Supabase.instance.client
+            .from('household_members')
+            .update({'avatar_url': imageUrl})
+            .eq('id', _membership!['id']);
+
+        // Also update on profiles table
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'avatar_url': imageUrl})
+            .eq('id', Supabase.instance.client.auth.currentUser!.id);
+
+        await _loadData();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile photo updated!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading photo: $e')),
+        );
+      }
+    }
   }
 
   @override

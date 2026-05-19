@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'subscription_screen.dart';
 import 'feedback_screen.dart';
+import 'notification_preferences_screen.dart';
 
 /// Settings screen for profile, household, and app configuration.
 class SettingsScreen extends StatefulWidget {
@@ -499,41 +500,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _updateNotificationPref('push_enabled', value);
             },
           ),
-          SwitchListTile(
-            secondary: const Icon(Icons.cleaning_services),
-            title: const Text('Chore Reminders'),
-            subtitle: const Text('Get reminded about upcoming chores'),
-            value: _choreReminders,
-            onChanged: _notificationsEnabled
-                ? (value) {
-                    setState(() => _choreReminders = value);
-                    _updateNotificationPref('chore_reminders', value);
-                  }
-                : null,
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.restaurant),
-            title: const Text('Meal Reminders'),
-            subtitle: const Text('Get reminded about meal plans'),
-            value: _mealReminders,
-            onChanged: _notificationsEnabled
-                ? (value) {
-                    setState(() => _mealReminders = value);
-                    _updateNotificationPref('meal_reminders', value);
-                  }
-                : null,
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.emoji_events),
-            title: const Text('Achievement Alerts'),
-            subtitle: const Text('Get notified when you earn badges'),
-            value: _achievementNotifications,
-            onChanged: _notificationsEnabled
-                ? (value) {
-                    setState(() => _achievementNotifications = value);
-                    _updateNotificationPref('achievement_notifications', value);
-                  }
-                : null,
+          ListTile(
+            leading: const Icon(Icons.tune),
+            title: const Text('Notification Preferences'),
+            subtitle: const Text('Customize which notifications you receive'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationPreferencesScreen()),
+            ),
           ),
 
           // Account section
