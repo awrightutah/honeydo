@@ -15,7 +15,7 @@
 - [x] Create/prepare Supabase project
 - [x] Apply database schema and Row Level Security policies
 - [ ] Configure Supabase Auth
-- [ ] Configure Supabase Storage buckets for avatars, recipe images, and chore verification photos
+- [x] Configure Supabase Storage buckets for avatars, recipe images, and chore verification photos
 - [x] Store Supabase keys in local environment templates
 
 ## Phase 3 — Backend API
