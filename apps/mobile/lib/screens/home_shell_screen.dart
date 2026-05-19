@@ -7,6 +7,10 @@ import 'shopping_list_screen.dart';
 import 'calendar_screen.dart';
 import 'recipe_library_screen.dart';
 import 'members_screen.dart';
+import 'rewards_screen.dart';
+import 'achievements_screen.dart';
+import 'point_history_screen.dart';
+import 'settings_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -82,15 +86,54 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           NavigationDestination(icon: Icon(Icons.menu_book_rounded), label: 'Recipes'),
         ],
       ),
-      // App bar with household name and profile access
       appBar: _isLoading
           ? null
           : AppBar(
-              title: Text(
-                _household?['name'] ?? 'Honeydo',
-                style: const TextStyle(fontWeight: FontWeight.w800),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_household?['emoji'] != null && (_household!['emoji'] as String).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                        _household!['emoji'],
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
+                  Flexible(
+                    child: Text(
+                      _household?['name'] ?? 'Honeydo',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
               actions: [
+                // Points badge
+                if (_myMembership != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: TextButton.icon(
+                      onPressed: () => _navigateToPointHistory(),
+                      icon: const Icon(Icons.star_rounded, size: 18, color: AppColors.honeyGold),
+                      label: Text(
+                        '${_myMembership!['points_balance'] ?? 0}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.honeyGold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.honeyGold.withOpacity(.1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.people_outline_rounded),
                   onPressed: () => _navigateToMembers(),
@@ -103,6 +146,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     const PopupMenuItem(value: 'members', child: Row(children: [Icon(Icons.people_rounded, size: 20), SizedBox(width: 12), Text('Household Members')])),
                     const PopupMenuItem(value: 'leaderboard', child: Row(children: [Icon(Icons.emoji_events_rounded, size: 20), SizedBox(width: 12), Text('Leaderboard')])),
                     const PopupMenuItem(value: 'rewards', child: Row(children: [Icon(Icons.card_giftcard_rounded, size: 20), SizedBox(width: 12), Text('Rewards')])),
+                    const PopupMenuItem(value: 'achievements', child: Row(children: [Icon(Icons.military_tech_rounded, size: 20), SizedBox(width: 12), Text('Achievements')])),
+                    const PopupMenuItem(value: 'point_history', child: Row(children: [Icon(Icons.history_rounded, size: 20), SizedBox(width: 12), Text('Point History')])),
                     const PopupMenuDivider(),
                     const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings_rounded, size: 20), SizedBox(width: 12), Text('Settings')])),
                     const PopupMenuItem(value: 'signout', child: Row(children: [Icon(Icons.logout_rounded, size: 20), SizedBox(width: 12), Text('Sign Out')])),
@@ -119,6 +164,30 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
   }
 
+  void _navigateToRewards() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const RewardsScreen()),
+    );
+  }
+
+  void _navigateToAchievements() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AchievementsScreen()),
+    );
+  }
+
+  void _navigateToPointHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PointHistoryScreen()),
+    );
+  }
+
+  void _navigateToSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
   void _handleMenuAction(String action) {
     switch (action) {
       case 'members':
@@ -128,10 +197,16 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         _showLeaderboard();
         break;
       case 'rewards':
-        _showRewards();
+        _navigateToRewards();
+        break;
+      case 'achievements':
+        _navigateToAchievements();
+        break;
+      case 'point_history':
+        _navigateToPointHistory();
         break;
       case 'settings':
-        // TODO: Navigate to settings screen
+        _navigateToSettings();
         break;
       case 'signout':
         _signOut();
@@ -165,49 +240,84 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     const Icon(Icons.emoji_events_rounded, color: AppColors.honeyGold, size: 28),
                     const SizedBox(width: 12),
                     Text('Leaderboard', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _navigateToPointHistory();
+                      },
+                      icon: const Icon(Icons.history_rounded, size: 18),
+                      label: const Text('My History'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.honeyGold,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: (results as List).length,
-                  itemBuilder: (context, i) {
-                    final entry = results[i] as Map<String, dynamic>;
-                    final rank = entry['rank'] ?? i + 1;
-                    final name = entry['display_name'] ?? 'Unknown';
-                    final points = entry['points_balance'] ?? 0;
-                    final kind = entry['kind'] ?? 'adult_auth_user';
-
-                    final rankEmoji = switch (rank) {
-                      1 => '🥇',
-                      2 => '🥈',
-                      3 => '🥉',
-                      _ => '',
-                    };
-
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: rank <= 3 ? AppColors.honeyGold.withOpacity(.2) : Colors.grey.withOpacity(.1),
-                        child: Text(
-                          rankEmoji.isNotEmpty ? rankEmoji : '$rank',
-                          style: TextStyle(fontSize: rankEmoji.isNotEmpty ? 22 : 14, fontWeight: FontWeight.w800),
+                child: (results as List).isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            Text('No points yet!', style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            Text('Complete chores to earn points and climb the leaderboard.', style: TextStyle(fontSize: 13, color: Colors.grey.shade400), textAlign: TextAlign.center),
+                          ],
                         ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: results.length,
+                        itemBuilder: (context, i) {
+                          final entry = results[i] as Map<String, dynamic>;
+                          final rank = entry['rank'] ?? i + 1;
+                          final name = entry['display_name'] ?? 'Unknown';
+                          final points = entry['points_balance'] ?? 0;
+                          final kind = entry['kind'] ?? 'adult_auth_user';
+                          final streak = entry['current_streak'] ?? 0;
+
+                          final rankEmoji = switch (rank) {
+                            1 => '🥇',
+                            2 => '🥈',
+                            3 => '🥉',
+                            _ => '',
+                          };
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: rank <= 3 ? AppColors.honeyGold.withOpacity(.2) : Colors.grey.withOpacity(.1),
+                              child: Text(
+                                rankEmoji.isNotEmpty ? rankEmoji : '$rank',
+                                style: TextStyle(fontSize: rankEmoji.isNotEmpty ? 22 : 14, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            subtitle: Row(
+                              children: [
+                                Text(kind == 'sub_profile' ? 'Kid' : 'Adult'),
+                                if (streak > 0) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.local_fire_department_rounded, size: 14, color: AppColors.coral),
+                                  Text('$streak streak', style: const TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
+                                ],
+                              ],
+                            ),
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.honeyGold.withOpacity(.15),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: Text('$points pts', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.honeyGold)),
+                            ),
+                          );
+                        },
                       ),
-                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text(kind == 'sub_profile' ? 'Kid' : 'Adult'),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.honeyGold.withOpacity(.15),
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text('$points pts', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.honeyGold)),
-                      ),
-                    );
-                  },
-                ),
               ),
             ],
           ),
@@ -220,56 +330,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         );
       }
     }
-  }
-
-  void _showRewards() {
-    // TODO: Build full rewards screen
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.card_giftcard_rounded, color: AppColors.coral, size: 28),
-                const SizedBox(width: 12),
-                Text('Rewards', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Spend your points on rewards set by your household admin!',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.honeyGold.withOpacity(.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.star_rounded, color: AppColors.honeyGold, size: 32),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_myMembership?['points_balance'] ?? 0} points',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text('Coming soon — admins will be able to set up custom rewards.'),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _signOut() async {
