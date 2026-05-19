@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../theme/app_theme.dart';
+import '../services/realtime_service.dart';
 import 'recipe_detail_screen.dart';
 
 /// Full recipe library screen with household recipe management,
@@ -27,19 +29,25 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
   String? _selectedCuisine;
   String? _selectedDifficulty;
 
-  final String _apiUrl = 'https://honeydo-production-743d.up.railway.app';
+  final String _apiUrl = dotenv.env['API_URL'] ?? 'https://honeydo-production-743d.up.railway.app';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+    RealtimeService.instance.recipesVersion.addListener(_onRealtimeUpdate);
   }
 
   @override
   void dispose() {
+    RealtimeService.instance.recipesVersion.removeListener(_onRealtimeUpdate);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {

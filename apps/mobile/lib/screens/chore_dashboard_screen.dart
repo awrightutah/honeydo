@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/realtime_service.dart';
 import 'chore_detail_screen.dart';
 
 class ChoreDashboardScreen extends StatefulWidget {
@@ -22,6 +23,18 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // Listen for realtime updates from other household members
+    RealtimeService.instance.choresVersion.addListener(_onRealtimeUpdate);
+  }
+
+  @override
+  void dispose() {
+    RealtimeService.instance.choresVersion.removeListener(_onRealtimeUpdate);
+    super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {

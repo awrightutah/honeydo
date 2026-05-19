@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/realtime_service.dart';
 import 'shopping_category_screen.dart';
 
 /// Full shopping list screen with multi-store support, manual entry,
@@ -64,6 +65,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   void initState() {
     super.initState();
     _loadData();
+    RealtimeService.instance.shoppingVersion.addListener(_onRealtimeUpdate);
+  }
+
+  @override
+  void dispose() {
+    RealtimeService.instance.shoppingVersion.removeListener(_onRealtimeUpdate);
+    super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {

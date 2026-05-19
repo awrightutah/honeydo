@@ -76,3 +76,10 @@
 - [ ] Voice assistant integration
 - [ ] AI-powered recipe suggestions
 - [ ] Smart home integration
+
+## Phase 16: Production Polish ✅ COMPLETE
+- [x] Global search across chores, recipes, and shopping items
+- [x] Chore templates with quick-add from template
+- [x] Household stats dashboard with visual charts
+- [x] Invite code management (create, share, revoke)
+- [x] Recipe import from URL (web scraping) — already existed in Phase 9

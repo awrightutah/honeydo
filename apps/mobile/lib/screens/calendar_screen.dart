@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/realtime_service.dart';
 
 /// Full calendar screen with month view, custom tags/colors,
 /// event creation, tag filtering, and shared reminders.
@@ -28,6 +29,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _selectedDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     _loadData();
+    RealtimeService.instance.choresVersion.addListener(_onRealtimeUpdate);
+  }
+
+  @override
+  void dispose() {
+    RealtimeService.instance.choresVersion.removeListener(_onRealtimeUpdate);
+    super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {

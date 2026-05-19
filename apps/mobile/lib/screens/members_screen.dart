@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import '../theme/app_theme.dart';
 
 /// Screen for managing household members: adding sub-profiles (kids),
@@ -419,14 +421,15 @@ class _AddSubProfileSheetState extends State<_AddSubProfileSheet> {
     setState(() => _isLoading = true);
 
     try {
-      // Hash the PIN (simple approach - in production use bcrypt/argon2 on the backend)
-      // For now, we store a placeholder hash - the backend will handle proper hashing
+      // Hash the PIN with SHA-256 before storing
+      final bytes = utf8.encode(pin);
+      final pinHash = sha256.convert(bytes).toString();
       await Supabase.instance.client.from('household_members').insert({
         'household_id': widget.householdId,
         'kind': 'sub_profile',
         'role': 'member',
         'display_name': name,
-        'pin_hash': pin, // TODO: Hash this properly on the backend
+        'pin_hash': pinHash,
         'points_balance': 0,
         'is_active': true,
         'created_by': Supabase.instance.client.auth.currentUser!.id,

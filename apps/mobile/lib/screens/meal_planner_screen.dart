@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/realtime_service.dart';
 import 'recipe_detail_screen.dart';
 
 /// Full meal planner screen with 7-day week view, meal type selection,
@@ -31,6 +32,17 @@ class _MealPlannerScreenState extends State<MealPlannerScreen> {
   void initState() {
     super.initState();
     _loadData();
+    RealtimeService.instance.mealPlansVersion.addListener(_onRealtimeUpdate);
+  }
+
+  @override
+  void dispose() {
+    RealtimeService.instance.mealPlansVersion.removeListener(_onRealtimeUpdate);
+    super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {

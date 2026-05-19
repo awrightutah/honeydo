@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/realtime_service.dart';
 import 'chore_dashboard_screen.dart';
 import 'meal_planner_screen.dart';
 import 'shopping_list_screen.dart';
@@ -19,6 +20,7 @@ import 'search_screen.dart';
 import 'household_stats_screen.dart';
 import 'chore_templates_screen.dart';
 import 'invite_management_screen.dart';
+import '../widgets/offline_banner.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -39,6 +41,18 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   void initState() {
     super.initState();
     _loadHouseholdInfo();
+    RealtimeService.instance.pointsVersion.addListener(_onPointsChanged);
+  }
+
+  @override
+  void dispose() {
+    RealtimeService.instance.unsubscribe();
+    RealtimeService.instance.pointsVersion.removeListener(_onPointsChanged);
+    super.dispose();
+  }
+
+  void _onPointsChanged() {
+    if (mounted) _loadHouseholdInfo();
   }
 
   Future<void> _loadHouseholdInfo() async {
@@ -53,6 +67,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       if (memberships.isNotEmpty) {
         _myMembership = memberships[0];
         _household = memberships[0]['households'];
+
+        // Subscribe to realtime updates for this household
+        if (_household?['id'] != null) {
+          RealtimeService.instance.subscribe(_household!['id']);
+        }
       }
     } catch (_) {
       // Silently handle - screens will show their own errors
@@ -79,9 +98,16 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     return Scaffold(
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _currentIndex,
-              children: _screens,
+          : Column(
+              children: [
+                const OfflineBanner(),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _screens,
+                  ),
+                ),
+              ],
             ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -417,6 +443,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     );
 
     if (confirmed == true) {
+      RealtimeService.instance.reset();
       await Supabase.instance.client.auth.signOut();
     }
   }
