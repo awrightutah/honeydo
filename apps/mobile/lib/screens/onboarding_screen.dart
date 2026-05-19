@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'household_setup_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,6 +20,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingStep('Choose rewards', 'Turn completed chores into points, prizes, streaks, and celebrations.'),
     _OnboardingStep('Plan meals and lists', 'Import recipes, plan meals, and move selected ingredients to your shopping list.'),
   ];
+
+  void _completeOnboarding() {
+    // TODO: Mark onboarding as completed in user metadata or database
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const HouseholdSetupScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   if (index < steps.length - 1) {
                     pageController.nextPage(duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
                   } else {
-                    // TODO: Navigate to account creation / Supabase auth.
+                    _completeOnboarding();
                   }
                 },
                 child: Text(index < steps.length - 1 ? 'Next' : 'Start setup'),

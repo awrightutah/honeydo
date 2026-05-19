@@ -118,6 +118,10 @@ app.get('/', (_req, res) => {
     <div class="endpoints">
       <h3>Available Endpoints</h3>
       <div class="endpoint"><span class="method get">GET</span><span class="path">/health</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/households</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/households/:id/invites</span></div>
+      <div class="endpoint"><span class="method post">POST</span><span class="path">/households/join</span></div>
+      <div class="endpoint"><span class="method get">GET</span><span class="path">/households/mine</span></div>
       <div class="endpoint"><span class="method post">POST</span><span class="path">/recipes/import</span></div>
       <div class="endpoint"><span class="method post">POST</span><span class="path">/webhooks/authorize-net</span></div>
       <div class="endpoint"><span class="method post">POST</span><span class="path">/jobs/send-notifications</span></div>
@@ -169,6 +173,277 @@ app.post('/jobs/send-notifications', async (_req, res) => {
     metadata: { status: 'placeholder' },
   });
   res.json({ ok: true, status: 'placeholder' });
+});
+
+// ── Household & Invite Endpoints ──────────────────────────────────────────────
+
+/**
+ * POST /households
+ * Create a new household and add the creator as admin.
+ * Body: { name, emoji?, theme_color? }
+ * Header: Authorization: Bearer <supabase_access_token>
+ */
+app.post('/households', async (req, res) => {
+  const authHeader = req.header('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ ok: false, error: 'Missing authorization token' });
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired token' });
+
+  const { name, emoji, theme_color } = req.body ?? {};
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return res.status(400).json({ ok: false, error: 'name is required' });
+  }
+  if (name.trim().length > 50) {
+    return res.status(400).json({ ok: false, error: 'name must be 50 characters or less' });
+  }
+
+  // Check subscription limits: free tier = max 1 household
+  const { data: existingMemberships } = await supabaseAdmin
+    .from('household_members')
+    .select('household_id')
+    .eq('user_id', user.id);
+
+  // TODO: Enforce household limit based on subscription tier
+  // Free tier: 1 household, Premium: unlimited
+
+  const { data: household, error: createError } = await supabaseAdmin
+    .from('households')
+    .insert({
+      name: name.trim(),
+      theme_color: theme_color || '#F5A623',
+      owner_user_id: user.id,
+      tier: 'free',
+      subscription_status: 'active',
+    })
+    .select()
+    .single();
+
+  if (createError) return res.status(500).json({ ok: false, error: 'Failed to create household' });
+
+  // Ensure profile exists for the user
+  await supabaseAdmin.from('profiles').upsert({
+    id: user.id,
+    email: user.email,
+    display_name: user.user_metadata?.display_name || user.email?.split('@').first || 'Admin',
+  }, { onConflict: 'id' });
+
+  // Add creator as admin
+  const { error: memberError } = await supabaseAdmin.from('household_members').insert({
+    household_id: household.id,
+    auth_user_id: user.id,
+    role: 'admin',
+    kind: 'adult_auth_user',
+    display_name: user.user_metadata?.display_name || 'Admin',
+    points_balance: 0,
+    is_active: true,
+    created_by: user.id,
+  });
+
+  if (memberError) return res.status(500).json({ ok: false, error: 'Failed to add household member' });
+
+  // Create default calendar tags
+  const defaultTags = [
+    { name: 'Chores', color: '#F5A623', emoji: '🧹' },
+    { name: 'Meals', color: '#7ED321', emoji: '🍽️' },
+    { name: 'Shopping', color: '#4A90D9', emoji: '🛒' },
+    { name: 'Family', color: '#FF6B6B', emoji: '❤️' },
+    { name: 'School', color: '#9B59B6', emoji: '📚' },
+    { name: 'Other', color: '#95A5A6', emoji: '📌' },
+  ];
+
+  await supabaseAdmin.from('calendar_tags').insert(
+    defaultTags.map((tag) => ({ ...tag, household_id: household.id }))
+  );
+
+  res.status(201).json({ ok: true, household });
+});
+
+/**
+ * POST /households/:id/invites
+ * Generate an invite code for a household.
+ * Body: { role?: 'admin' | 'member', kind?: 'adult' | 'child' }
+ * Header: Authorization: Bearer <supabase_access_token>
+ */
+app.post('/households/:householdId/invites', async (req, res) => {
+  const authHeader = req.header('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ ok: false, error: 'Missing authorization token' });
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired token' });
+
+  const { householdId } = req.params;
+  const { role = 'member', kind = 'adult' } = req.body ?? {};
+
+  // Verify the user is an admin of this household
+  const { data: membership } = await supabaseAdmin
+    .from('household_members')
+    .select('role')
+    .eq('household_id', householdId)
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+
+  if (!membership || membership.role !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Only household admins can create invites' });
+  }
+
+  // Check member limit: max 6 members
+  const { count } = await supabaseAdmin
+    .from('household_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('household_id', householdId);
+
+  if (count >= 6) {
+    return res.status(400).json({ ok: false, error: 'Household has reached the maximum of 6 members' });
+  }
+
+  // Generate a unique 6-character invite code
+  const code = crypto.randomBytes(3).toString('hex').toUpperCase();
+
+  const { data: invite, error: inviteError } = await supabaseAdmin
+    .from('household_invites')
+    .insert({
+      household_id: householdId,
+      code,
+      max_uses: 1,
+      use_count: 0,
+      created_by: user.id,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    })
+    .select()
+    .single();
+
+  if (inviteError) return res.status(500).json({ ok: false, error: 'Failed to create invite' });
+
+  res.status(201).json({ ok: true, invite });
+});
+
+/**
+ * POST /households/join
+ * Join a household using an invite code.
+ * Body: { code }
+ * Header: Authorization: Bearer <supabase_access_token>
+ */
+app.post('/households/join', async (req, res) => {
+  const authHeader = req.header('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ ok: false, error: 'Missing authorization token' });
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired token' });
+
+  const { code } = req.body ?? {};
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ ok: false, error: 'code is required' });
+  }
+
+  // Look up the invite
+  const { data: invite } = await supabaseAdmin
+    .from('household_invites')
+    .select('*')
+    .eq('code', code.trim().toUpperCase())
+    .maybeSingle();
+
+  if (!invite) {
+    return res.status(404).json({ ok: false, error: 'Invalid invite code' });
+  }
+
+  // Check expiration
+  if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+    return res.status(400).json({ ok: false, error: 'Invite code has expired' });
+  }
+
+  // Check if revoked
+  if (invite.revoked_at) {
+    return res.status(400).json({ ok: false, error: 'Invite code has been revoked' });
+  }
+
+  // Check max uses
+  if (invite.use_count >= invite.max_uses) {
+    return res.status(400).json({ ok: false, error: 'Invite code has reached its usage limit' });
+  }
+
+  // Check if already a member
+  const { data: existing } = await supabaseAdmin
+    .from('household_members')
+    .select('id')
+    .eq('household_id', invite.household_id)
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+
+  if (existing) {
+    return res.status(400).json({ ok: false, error: 'You are already a member of this household' });
+  }
+
+  // Check member limit
+  const { count } = await supabaseAdmin
+    .from('household_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('household_id', invite.household_id);
+
+  if (count >= 6) {
+    return res.status(400).json({ ok: false, error: 'Household has reached the maximum of 6 members' });
+  }
+
+  // Ensure profile exists
+  await supabaseAdmin.from('profiles').upsert({
+    id: user.id,
+    email: user.email,
+    display_name: user.user_metadata?.display_name || user.email?.split('@').first || 'Member',
+  }, { onConflict: 'id' });
+
+  // Add as member
+  const { error: memberError } = await supabaseAdmin.from('household_members').insert({
+    household_id: invite.household_id,
+    auth_user_id: user.id,
+    role: 'member',
+    kind: 'adult_auth_user',
+    display_name: user.user_metadata?.display_name || 'Member',
+    points_balance: 0,
+    is_active: true,
+    created_by: user.id,
+  });
+
+  if (memberError) return res.status(500).json({ ok: false, error: 'Failed to join household' });
+
+  // Increment invite use count
+  await supabaseAdmin.from('household_invites')
+    .update({ use_count: invite.use_count + 1 })
+    .eq('id', invite.id);
+
+  // Get the household info for the response
+  const { data: household } = await supabaseAdmin
+    .from('households')
+    .select('*')
+    .eq('id', invite.household_id)
+    .single();
+
+  res.json({ ok: true, household });
+});
+
+/**
+ * GET /households/mine
+ * Get the current user's household(s) with members.
+ * Header: Authorization: Bearer <supabase_access_token>
+ */
+app.get('/households/mine', async (req, res) => {
+  const authHeader = req.header('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ ok: false, error: 'Missing authorization token' });
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired token' });
+
+  const { data: memberships, error } = await supabaseAdmin
+    .from('household_members')
+    .select('*, households(*)')
+    .eq('auth_user_id', user.id);
+
+  if (error) return res.status(500).json({ ok: false, error: 'Failed to fetch households' });
+
+  res.json({ ok: true, households: memberships });
 });
 
 function verifyAuthorizeNetSignature(rawBody, header) {
