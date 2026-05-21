@@ -202,28 +202,47 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
           'verified_by_member_id': _myMembership!['id'],
         }).eq('id', choreId);
 
-        // Award points to the user who completed it
+        // Award points to the user who completed it.
+        // Adults have a Supabase auth account (kind = 'adult_auth_user');
+        // kids are sub_profiles with auth_user_id = NULL, so for kids we
+        // call the member_id-based RPC variants (see 0011 migration).
         final assignedMemberId = chore['assigned_to_member_id'] as String;
         final assignedMember = await Supabase.instance.client
             .from('household_members')
-            .select('auth_user_id')
+            .select('id, kind, auth_user_id')
             .eq('id', assignedMemberId)
             .single();
 
-        await Supabase.instance.client.rpc('award_points', params: {
-          'p_auth_user_id': assignedMember['auth_user_id'],
-          'p_household_id': chore['household_id'],
-          'p_points': points + (chore['bonus_points'] ?? 0),
-          'p_note': 'chore_completion',
-          'p_source_table': 'chores',
-          'p_source_id': choreId,
-        });
+        final totalPoints = points + (chore['bonus_points'] ?? 0);
+        final isSubProfile = assignedMember['kind'] == 'sub_profile';
 
-        // Check for new achievements
-        await Supabase.instance.client.rpc('check_and_award_achievements', params: {
-          'p_auth_user_id': assignedMember['auth_user_id'],
-          'p_household_id': chore['household_id'],
-        });
+        if (isSubProfile) {
+          await Supabase.instance.client.rpc('award_points_to_member', params: {
+            'p_member_id': assignedMember['id'],
+            'p_household_id': chore['household_id'],
+            'p_points': totalPoints,
+            'p_note': 'chore_completion',
+            'p_source_table': 'chores',
+            'p_source_id': choreId,
+          });
+          await Supabase.instance.client.rpc('check_and_award_achievements_for_member', params: {
+            'p_member_id': assignedMember['id'],
+            'p_household_id': chore['household_id'],
+          });
+        } else {
+          await Supabase.instance.client.rpc('award_points', params: {
+            'p_auth_user_id': assignedMember['auth_user_id'],
+            'p_household_id': chore['household_id'],
+            'p_points': totalPoints,
+            'p_note': 'chore_completion',
+            'p_source_table': 'chores',
+            'p_source_id': choreId,
+          });
+          await Supabase.instance.client.rpc('check_and_award_achievements', params: {
+            'p_auth_user_id': assignedMember['auth_user_id'],
+            'p_household_id': chore['household_id'],
+          });
+        }
 
         // Create the next occurrence for recurring chores after approval.
         await _createNextRecurringChoreIfNeeded(chore);

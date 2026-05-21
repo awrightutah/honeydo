@@ -916,7 +916,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             final ingMap = ing is Map ? ing : {'raw': ing.toString()};
             return ListTile(
               dense: true,
-              title: Text(ingMap['raw'] ?? ingMap['name'] ?? ing.toString()),
+              title: Text((ingMap['raw'] ?? ingMap['name'] ?? ing).toString()),
               trailing: IconButton(
                 icon: const Icon(Icons.delete_outline, size: 18),
                 onPressed: () => setState(() => _editIngredients.removeAt(index)),

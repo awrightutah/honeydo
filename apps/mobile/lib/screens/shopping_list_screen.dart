@@ -679,7 +679,12 @@ class _ShoppingItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = item['name'] ?? 'Unknown';
-    final quantity = item['display_quantity'] ?? item['quantity'];
+    final rawQuantity = item['display_quantity'] ?? item['quantity'];
+    final quantity = rawQuantity is num
+        ? (rawQuantity == rawQuantity.truncate()
+            ? rawQuantity.toInt().toString()
+            : rawQuantity.toString())
+        : rawQuantity?.toString();
     final purchased = item['purchased'] ?? false;
     final store = item['store']?['name'];
     final category = item['category'];
