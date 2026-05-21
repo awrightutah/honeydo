@@ -45,7 +45,13 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   List<Map<String, dynamic>> _householdMembers = [];
   bool _showTour = false;
 
-  late final List<Widget> _screens;
+  final List<Widget> _screens = const [
+    ChoreDashboardScreen(),
+    MealPlannerScreen(),
+    ShoppingListScreen(),
+    CalendarScreen(),
+    RecipeLibraryScreen(),
+  ];
 
   @override
   void initState() {
@@ -134,7 +140,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        _buildScreens();
         // Show feature tour for first-time users
         if (!FeatureTourService.instance.tourCompleted) {
           Future.delayed(const Duration(milliseconds: 800), () {
@@ -143,16 +148,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
         }
       }
     }
-  }
-
-  void _buildScreens() {
-    _screens = [
-      const ChoreDashboardScreen(),
-      const MealPlannerScreen(),
-      const ShoppingListScreen(),
-      const CalendarScreen(),
-      const RecipeLibraryScreen(),
-    ];
   }
 
   @override
