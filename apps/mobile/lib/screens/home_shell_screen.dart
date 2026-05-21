@@ -529,6 +529,13 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     if (verified != true) return;
     final pin = pinController.text.trim();
+    // SECURITY DEBT (CQ2 in audits/2026-05-pass-1a-flutter-v3.md):
+    // SHA-256 with no salt over a 4-6 digit PIN is recoverable in under
+    // one second via a complete rainbow table (key space <= 10^6). Anyone
+    // with SELECT access to `pin_hash` can recover every kid PIN.
+    // Proper fix: move verification to a server-side Postgres function
+    // using pgcrypto (`crypt(pin, gen_salt('bf'))` or scrypt) with a
+    // per-row salt, and revoke client SELECT on the `pin_hash` column.
     final pinHash = sha256.convert(utf8.encode(pin)).toString();
     if (pinHash != member['pin_hash']) {
       if (mounted) {
