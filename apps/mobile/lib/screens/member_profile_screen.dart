@@ -49,13 +49,13 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
           .from('chores')
           .select('id')
           .eq('assigned_to_member_id', widget.memberId)
-          .inFilter('status', ['verified', 'completed']);
+          .inFilter('status', ['verified', 'pending_verification']);
 
       final pointsRows = await Supabase.instance.client
           .from('point_transactions')
           .select('amount')
           .eq('member_id', widget.memberId)
-          .eq('transaction_type', 'earned');
+          .eq('type', 'earned');
 
       final leaderboardResults = await Supabase.instance.client.rpc(
         'get_leaderboard',
@@ -70,8 +70,8 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
           .limit(10);
 
       final badges = await Supabase.instance.client
-          .from('member_badges')
-          .select('*, badges(*)')
+          .from('achievements')
+          .select('*')
           .eq('member_id', widget.memberId)
           .order('earned_at', ascending: false)
           .limit(20);
@@ -296,9 +296,8 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
       spacing: 8,
       runSpacing: 8,
       children: _badges.map((badge) {
-        final badgeData = badge['badges'] as Map<String, dynamic>?;
-        final name = badgeData?['name'] ?? 'Badge';
-        final emoji = badgeData?['emoji'] ?? '\ud83c\udfc6';
+        final name = badge['badge_name'] ?? 'Badge';
+        final emoji = badge['icon'] ?? '\ud83c\udfc6';
         final earnedAt = badge['earned_at'];
 
         return Container(

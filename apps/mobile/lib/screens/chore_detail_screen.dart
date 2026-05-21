@@ -45,7 +45,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   final List<Map<String, String>> _statuses = [
     {'value': 'assigned', 'label': 'Assigned'},
     {'value': 'in_progress', 'label': 'In Progress'},
-    {'value': 'completed', 'label': 'Completed'},
+    {'value': 'pending_verification', 'label': 'Completed'},
     {'value': 'verified', 'label': 'Verified'},
     {'value': 'skipped', 'label': 'Skipped'},
   ];
@@ -305,7 +305,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     return switch (status) {
       'assigned' => AppColors.skyBlue,
       'in_progress' => AppColors.honeyGold,
-      'completed' => AppColors.grassGreen,
+      'pending_verification' => AppColors.grassGreen,
       'verified' => const Color(0xFF4CAF50),
       'skipped' => Colors.grey,
       _ => Colors.grey,
@@ -316,7 +316,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     return switch (status) {
       'assigned' => Icons.assignment,
       'in_progress' => Icons.pending,
-      'completed' => Icons.check_circle,
+      'pending_verification' => Icons.check_circle,
       'verified' => Icons.verified,
       'skipped' => Icons.skip_next,
       _ => Icons.help,
@@ -511,8 +511,8 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
                 if (status == 'assigned')
                   _buildActionChip('Start', Icons.play_arrow_rounded, AppColors.skyBlue, () => _quickUpdateStatus('in_progress')),
                 if (status == 'in_progress' || status == 'assigned')
-                  _buildActionChip('Complete', Icons.check_circle_rounded, AppColors.grassGreen, () => _quickUpdateStatus('completed')),
-                if (status == 'completed' && isAdmin)
+                  _buildActionChip('Complete', Icons.check_circle_rounded, AppColors.grassGreen, () => _quickUpdateStatus('pending_verification')),
+                if (status == 'pending_verification' && isAdmin)
                   _buildActionChip('Verify', Icons.verified_rounded, const Color(0xFF4CAF50), () => _quickUpdateStatus('verified')),
                 if (status != 'skipped')
                   _buildActionChip('Skip', Icons.skip_next_rounded, Colors.grey, () => _quickUpdateStatus('skipped')),
@@ -675,7 +675,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$verifier ${status == 'verified' ? 'verified' : status == 'completed' ? 'completed' : 'updated'} this chore',
+                  '$verifier ${status == 'verified' ? 'verified' : status == 'pending_verification' ? 'completed' : 'updated'} this chore',
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 ),
                 Text(
@@ -872,7 +872,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     try {
       final previousChore = _chore == null ? null : Map<String, dynamic>.from(_chore!);
       final updates = <String, dynamic>{'status': newStatus};
-      if (newStatus == 'completed' || newStatus == 'verified') {
+      if (newStatus == 'pending_verification' || newStatus == 'verified') {
         updates['completed_at'] = DateTime.now().toIso8601String();
       }
       await Supabase.instance.client
@@ -880,7 +880,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
           .update(updates)
           .eq('id', widget.choreId);
 
-      if ((newStatus == 'completed' || newStatus == 'verified') && previousChore != null) {
+      if ((newStatus == 'pending_verification' || newStatus == 'verified') && previousChore != null) {
         await _createNextRecurringChoreIfNeeded(previousChore);
       }
 

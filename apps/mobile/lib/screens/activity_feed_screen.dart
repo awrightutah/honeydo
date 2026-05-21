@@ -51,7 +51,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
             .from('chores')
             .select('id, title, status, completed_at, point_value, assigned_to_member_id, household_members!chores_assigned_to_member_id_fkey(display_name, kind)')
             .eq('household_id', householdId)
-            .inFilter('status', ['completed', 'verified', 'pending_verification'])
+            .inFilter('status', ['verified', 'pending_verification'])
             .order('completed_at', ascending: false)
             .limit(20);
 
@@ -74,20 +74,20 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
       // 2. Achievements earned
       try {
         final achievements = await Supabase.instance.client
-            .from('member_achievements')
-            .select('created_at, badge_name, badge_icon, household_members!member_achievements_member_id_fkey(display_name, kind)')
+            .from('achievements')
+            .select('earned_at, badge_name, icon, household_members!achievements_member_id_fkey(display_name, kind)')
             .eq('household_id', householdId)
-            .order('created_at', ascending: false)
+            .order('earned_at', ascending: false)
             .limit(20);
 
         for (final achievement in achievements) {
           allActivities.add({
             'type': 'achievement_earned',
-            'timestamp': achievement['created_at'],
+            'timestamp': achievement['earned_at'],
             'member_name': achievement['household_members']?['display_name'] ?? 'Someone',
             'member_kind': achievement['household_members']?['kind'] ?? 'adult_auth_user',
             'badge_name': achievement['badge_name'] ?? 'Badge',
-            'badge_icon': achievement['badge_icon'] ?? '🏆',
+            'badge_icon': achievement['icon'] ?? '🏆',
           });
         }
       } catch (_) {}
@@ -96,7 +96,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
       try {
         final transactions = await Supabase.instance.client
             .from('point_transactions')
-            .select('created_at, amount, transaction_type, reason, household_members!point_transactions_member_id_fkey(display_name, kind)')
+            .select('created_at, amount, type, note, household_members!point_transactions_member_id_fkey(display_name, kind)')
             .eq('household_id', householdId)
             .order('created_at', ascending: false)
             .limit(20);
@@ -108,8 +108,8 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
             'member_name': tx['household_members']?['display_name'] ?? 'Someone',
             'member_kind': tx['household_members']?['kind'] ?? 'adult_auth_user',
             'amount': tx['amount'] ?? 0,
-            'transaction_type': tx['transaction_type'] ?? 'earned',
-            'reason': tx['reason'] ?? '',
+            'transaction_type': tx['type'] ?? 'earned',
+            'reason': tx['note'] ?? '',
           });
         }
       } catch (_) {}
@@ -118,19 +118,19 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
       try {
         final redemptions = await Supabase.instance.client
             .from('reward_redemptions')
-            .select('created_at, reward_name, points_cost, household_members!reward_redemptions_member_id_fkey(display_name, kind)')
+            .select('redeemed_at, point_cost, rewards(title, icon), household_members!reward_redemptions_member_id_fkey(display_name, kind)')
             .eq('household_id', householdId)
-            .order('created_at', ascending: false)
+            .order('redeemed_at', ascending: false)
             .limit(20);
 
         for (final redemption in redemptions) {
           allActivities.add({
             'type': 'reward_redeemed',
-            'timestamp': redemption['created_at'],
+            'timestamp': redemption['redeemed_at'],
             'member_name': redemption['household_members']?['display_name'] ?? 'Someone',
             'member_kind': redemption['household_members']?['kind'] ?? 'adult_auth_user',
-            'reward_name': redemption['reward_name'] ?? 'Reward',
-            'points_cost': redemption['points_cost'] ?? 0,
+            'reward_name': redemption['rewards']?['title'] ?? 'Reward',
+            'points_cost': redemption['point_cost'] ?? 0,
           });
         }
       } catch (_) {}

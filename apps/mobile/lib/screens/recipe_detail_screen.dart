@@ -263,7 +263,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             'shopping_list_id': selectedListId,
             'name': ingMap['raw'] ?? ingMap['name'] ?? ing.toString(),
             'quantity': ingMap['quantity']?.toString() ?? '',
-            'is_purchased': false,
+            'purchased': false,
           });
         }
 
@@ -340,12 +340,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     if (confirmed == true) {
       try {
-        await Supabase.instance.client.from('meal_plan_entries').insert({
+        await Supabase.instance.client.from('meal_plans').insert({
           'household_id': _householdMember!['household_id'],
           'recipe_id': widget.recipeId,
-          'meal_date': selectedDate.toIso8601String().split('T')[0],
+          'planned_for': selectedDate.toIso8601String().split('T')[0],
           'meal_type': selectedMealType,
-          'added_by_member_id': _householdMember!['id'],
+          'created_by_member_id': _householdMember!['id'],
         });
 
         if (mounted) {
