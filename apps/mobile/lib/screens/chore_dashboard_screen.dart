@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
+import '../services/active_member_service.dart';
 import 'chore_detail_screen.dart';
 
 class ChoreDashboardScreen extends StatefulWidget {
@@ -28,11 +29,13 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     super.initState();
     _loadData();
     RealtimeService.instance.choresVersion.addListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
     RealtimeService.instance.choresVersion.removeListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     super.dispose();
   }
 
@@ -40,6 +43,10 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     if (mounted) {
       _loadData();
     }
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
@@ -67,9 +74,22 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      final adultMembership = Map<String, dynamic>.from(memberships[0]);
+      _household = adultMembership['households'];
       final householdId = _household!['id'];
+      final activeMemberId = ActiveMemberService.instance.activeMemberId.value;
+      if (activeMemberId != null && activeMemberId != adultMembership['id']) {
+        final activeRows = await Supabase.instance.client
+            .from('household_members')
+            .select()
+            .eq('id', activeMemberId)
+            .eq('household_id', householdId)
+            .eq('is_active', true)
+            .limit(1);
+        _myMembership = activeRows.isNotEmpty ? activeRows[0] : adultMembership;
+      } else {
+        _myMembership = adultMembership;
+      }
       final myMemberId = _myMembership!['id'];
 
       // Load chores assigned to me that are assigned/pending
@@ -122,6 +142,51 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     }
   }
 
+
+  Future<void> _createNextRecurringChoreIfNeeded(Map<String, dynamic> chore) async {
+    final recurrence = chore['recurrence_rule'] as String?;
+    if (recurrence == null || recurrence == 'once') return;
+
+    DateTime baseDate;
+    if (chore['due_at'] != null) {
+      baseDate = DateTime.parse(chore['due_at']).toLocal();
+    } else {
+      baseDate = DateTime.now();
+    }
+
+    final nextDue = switch (recurrence) {
+      'daily' => baseDate.add(const Duration(days: 1)),
+      'weekly' => baseDate.add(const Duration(days: 7)),
+      'biweekly' => baseDate.add(const Duration(days: 14)),
+      'monthly' => DateTime(baseDate.year, baseDate.month + 1, baseDate.day, baseDate.hour, baseDate.minute),
+      _ => null,
+    };
+    if (nextDue == null) return;
+
+    final nextExists = await Supabase.instance.client
+        .from('chores')
+        .select('id')
+        .eq('household_id', chore['household_id'])
+        .eq('title', chore['title'])
+        .eq('assigned_to_member_id', chore['assigned_to_member_id'])
+        .eq('recurrence_rule', recurrence)
+        .eq('due_at', nextDue.toUtc().toIso8601String())
+        .limit(1);
+    if (nextExists.isNotEmpty) return;
+
+    final insert = Map<String, dynamic>.from(chore)
+      ..remove('id')
+      ..remove('created_at')
+      ..remove('updated_at')
+      ..remove('completed_at')
+      ..remove('verified_at')
+      ..remove('verified_by_member_id')
+      ..['status'] = 'assigned'
+      ..['due_at'] = nextDue.toUtc().toIso8601String();
+
+    await Supabase.instance.client.from('chores').insert(insert);
+  }
+
   Future<void> _verifyChore(String choreId, bool approved) async {
     try {
       final chore = _pendingVerification.firstWhere((c) => c['id'] == choreId);
@@ -156,6 +221,9 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
           'p_user_id': assignedMember['user_id'],
           'p_household_id': chore['household_id'],
         });
+
+        // Create the next occurrence for recurring chores after approval.
+        await _createNextRecurringChoreIfNeeded(chore);
       } else {
         // Reject - put chore back to assigned
         await Supabase.instance.client.from('chores').update({

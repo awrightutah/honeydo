@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import '../theme/app_theme.dart';
+import 'member_profile_screen.dart';
 
 /// Screen for managing household members: adding sub-profiles (kids),
 /// inviting adults, and managing existing members.
@@ -187,6 +188,10 @@ class _MembersScreenState extends State<MembersScreen> {
                   ..._members.map((member) => _MemberCard(
                         member: member,
                         isCurrentUser: member['auth_user_id'] == Supabase.instance.client.auth.currentUser?.id,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => MemberProfileScreen(memberId: member['id'])),
+                        ),
                       )),
 
                   const SizedBox(height: 24),
@@ -307,9 +312,10 @@ class _StatCard extends StatelessWidget {
 }
 
 class _MemberCard extends StatelessWidget {
-  const _MemberCard({required this.member, required this.isCurrentUser});
+  const _MemberCard({required this.member, required this.isCurrentUser, required this.onTap});
   final Map<String, dynamic> member;
   final bool isCurrentUser;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +328,7 @@ class _MemberCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onTap,
         leading: CircleAvatar(
           backgroundColor: isKid ? AppColors.honeyGold.withOpacity(.2) : AppColors.skyBlue.withOpacity(.2),
           child: Text(

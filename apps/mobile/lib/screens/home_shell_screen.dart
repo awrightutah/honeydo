@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
+import '../services/active_member_service.dart';
 import 'chore_dashboard_screen.dart';
 import 'meal_planner_screen.dart';
 import 'shopping_list_screen.dart';
@@ -39,6 +42,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   Map<String, dynamic>? _myMembership;
   bool _isLoading = true;
   Map<String, dynamic>? _pinnedAnnouncement;
+  List<Map<String, dynamic>> _householdMembers = [];
   bool _showTour = false;
 
   late final List<Widget> _screens;
@@ -51,12 +55,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     RealtimeService.instance.pointsVersion.addListener(_onPointsChanged);
     // Listen for announcement changes to refresh the banner
     RealtimeService.instance.announcementsVersion.addListener(_onAnnouncementChanged);
+    ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
     RealtimeService.instance.pointsVersion.removeListener(_onPointsChanged);
     RealtimeService.instance.announcementsVersion.removeListener(_onAnnouncementChanged);
+    ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     super.dispose();
   }
 
@@ -71,6 +77,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     if (mounted) _loadHouseholdInfo();
   }
 
+  void _onActiveMemberChanged() {
+    if (mounted) _loadHouseholdInfo();
+  }
+
   Future<void> _loadHouseholdInfo() async {
     try {
       final user = Supabase.instance.client.auth.currentUser!;
@@ -81,8 +91,27 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           .limit(1);
 
       if (memberships.isNotEmpty) {
-        _myMembership = memberships[0];
-        _household = memberships[0]['households'];
+        final adultMembership = Map<String, dynamic>.from(memberships[0]);
+        _household = adultMembership['households'];
+
+        final members = await Supabase.instance.client
+            .from('household_members')
+            .select()
+            .eq('household_id', _household!['id'])
+            .eq('is_active', true)
+            .order('created_at');
+        _householdMembers = List<Map<String, dynamic>>.from(members);
+
+        final requestedActiveId = ActiveMemberService.instance.activeMemberId.value;
+        final activeMember = _householdMembers.firstWhere(
+          (m) => m['id'] == requestedActiveId,
+          orElse: () => adultMembership,
+        );
+        _myMembership = activeMember;
+        if (requestedActiveId == null || activeMember['id'] != requestedActiveId) {
+          await ActiveMemberService.instance.switchTo(adultMembership['id']);
+        }
+
         // Subscribe to realtime updates for this household
         RealtimeService.instance.subscribe(_household!['id']);
 
@@ -238,6 +267,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   ),
                   ),
                 IconButton(
+                  icon: Icon(_myMembership?['kind'] == 'sub_profile' ? Icons.child_care_rounded : Icons.switch_account_rounded),
+                  onPressed: _showProfileSwitcher,
+                  tooltip: 'Switch profile',
+                ),
+                IconButton(
                   icon: const Icon(Icons.search_rounded),
                   onPressed: () => _navigateToSearch(),
                   tooltip: 'Search',
@@ -252,6 +286,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   onSelected: _handleMenuAction,
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'profile', child: Row(children: [Icon(Icons.person_rounded, size: 20), SizedBox(width: 12), Text('My Profile')])),
+                    const PopupMenuItem(value: 'switch_profile', child: Row(children: [Icon(Icons.switch_account_rounded, size: 20), SizedBox(width: 12), Text('Switch Profile')])),
                     const PopupMenuItem(value: 'members', child: Row(children: [Icon(Icons.people_rounded, size: 20), SizedBox(width: 12), Text('Household Members')])),
                     const PopupMenuItem(value: 'activity', child: Row(children: [Icon(Icons.timeline_rounded, size: 20), SizedBox(width: 12), Text('Activity Feed')])),
                     const PopupMenuItem(value: 'stats', child: Row(children: [Icon(Icons.bar_chart_rounded, size: 20), SizedBox(width: 12), Text('Household Stats')])),
@@ -355,6 +390,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       case 'profile':
         _navigateToProfile();
         break;
+      case 'switch_profile':
+        _showProfileSwitcher();
+        break;
       case 'members':
         _navigateToMembers();
         break;
@@ -400,6 +438,112 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       case 'signout':
         _signOut();
         break;
+    }
+  }
+
+
+  Future<void> _showProfileSwitcher() async {
+    if (_householdMembers.isEmpty || _myMembership == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Switch Profile', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 8),
+              Text(
+                'Kids use their PIN to switch into their profile under this adult account.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              ..._householdMembers.where((member) {
+                final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+                return member['kind'] == 'sub_profile' || member['auth_user_id'] == currentUserId;
+              }).map((member) {
+                final isKid = member['kind'] == 'sub_profile';
+                final isActive = member['id'] == _myMembership?['id'];
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text(isKid ? '👶' : '👤')),
+                    title: Text(member['display_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(isKid ? 'Kid profile' : 'Adult profile'),
+                    trailing: isActive
+                        ? const Icon(Icons.check_circle_rounded, color: AppColors.grassGreen)
+                        : Icon(isKid ? Icons.lock_outline_rounded : Icons.login_rounded),
+                    onTap: isActive
+                        ? null
+                        : () async {
+                            Navigator.pop(context);
+                            if (isKid) {
+                              await _verifyAndSwitchToKid(member);
+                            } else {
+                              await ActiveMemberService.instance.switchTo(member['id']);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Switched to ${member['display_name']}')),
+                                );
+                              }
+                            }
+                          },
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _verifyAndSwitchToKid(Map<String, dynamic> member) async {
+    final pinController = TextEditingController();
+    final verified = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Enter PIN for ${member['display_name']}'),
+        content: TextField(
+          controller: pinController,
+          autofocus: true,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            labelText: 'PIN',
+            prefixIcon: Icon(Icons.lock_outline_rounded),
+            counterText: '',
+          ),
+          onSubmitted: (_) => Navigator.pop(context, true),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Switch')),
+        ],
+      ),
+    );
+
+    if (verified != true) return;
+    final pin = pinController.text.trim();
+    final pinHash = sha256.convert(utf8.encode(pin)).toString();
+    if (pinHash != member['pin_hash']) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Incorrect PIN. Please try again.')),
+        );
+      }
+      return;
+    }
+
+    await ActiveMemberService.instance.switchTo(member['id']);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Switched to ${member['display_name']}')),
+      );
     }
   }
 
@@ -543,6 +687,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     if (confirmed == true) {
       RealtimeService.instance.reset();
+      await ActiveMemberService.instance.clear();
       await Supabase.instance.client.auth.signOut();
     }
   }

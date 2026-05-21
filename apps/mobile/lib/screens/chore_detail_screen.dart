@@ -867,10 +867,19 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
 
   Future<void> _quickUpdateStatus(String newStatus) async {
     try {
+      final previousChore = _chore == null ? null : Map<String, dynamic>.from(_chore!);
+      final updates = <String, dynamic>{'status': newStatus};
+      if (newStatus == 'completed' || newStatus == 'verified') {
+        updates['completed_at'] = DateTime.now().toIso8601String();
+      }
       await Supabase.instance.client
           .from('chores')
-          .update({'status': newStatus})
+          .update(updates)
           .eq('id', widget.choreId);
+
+      if ((newStatus == 'completed' || newStatus == 'verified') && previousChore != null) {
+        await _createNextRecurringChoreIfNeeded(previousChore);
+      }
 
       await _loadData();
 
@@ -886,6 +895,52 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
         );
       }
     }
+  }
+
+
+  Future<void> _createNextRecurringChoreIfNeeded(Map<String, dynamic> chore) async {
+    final recurrence = chore['recurrence_rule'] as String?;
+    if (recurrence == null || recurrence == 'once') return;
+
+    DateTime baseDate;
+    if (chore['due_at'] != null) {
+      baseDate = DateTime.parse(chore['due_at']).toLocal();
+    } else {
+      baseDate = DateTime.now();
+    }
+
+    final nextDue = switch (recurrence) {
+      'daily' => baseDate.add(const Duration(days: 1)),
+      'weekly' => baseDate.add(const Duration(days: 7)),
+      'biweekly' => baseDate.add(const Duration(days: 14)),
+      'monthly' => DateTime(baseDate.year, baseDate.month + 1, baseDate.day, baseDate.hour, baseDate.minute),
+      _ => null,
+    };
+    if (nextDue == null) return;
+
+    final nextExists = await Supabase.instance.client
+        .from('chores')
+        .select('id')
+        .eq('household_id', chore['household_id'])
+        .eq('title', chore['title'])
+        .eq('assigned_to_member_id', chore['assigned_to_member_id'])
+        .eq('recurrence_rule', recurrence)
+        .eq('due_at', nextDue.toUtc().toIso8601String())
+        .limit(1);
+    if (nextExists.isNotEmpty) return;
+
+    final insert = Map<String, dynamic>.from(chore)
+      ..remove('id')
+      ..remove('created_at')
+      ..remove('updated_at')
+      ..remove('completed_at')
+      ..remove('verified_at')
+      ..remove('verified_by_member_id')
+      ..remove('household_members')
+      ..['status'] = 'assigned'
+      ..['due_at'] = nextDue.toUtc().toIso8601String();
+
+    await Supabase.instance.client.from('chores').insert(insert);
   }
 
   String _formatTimestamp(String? ts) {

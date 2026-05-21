@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'services/offline_service.dart';
 import 'services/feature_tour_service.dart';
+import 'services/active_member_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -25,8 +26,9 @@ Future<void> main() async {
   // Initialize offline service
   await OfflineService.instance.init();
 
-  // Initialize feature tour service
+  // Initialize feature tour and active member services
   await FeatureTourService.instance.init();
+  await ActiveMemberService.instance.init();
 
   runApp(const HoneydoApp());
 }
