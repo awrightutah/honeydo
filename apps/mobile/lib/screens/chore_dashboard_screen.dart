@@ -239,7 +239,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not update chore status. Please try again.')),
+          SnackBar(content: Text('Could not update chore status: $e')),
         );
       }
     }
