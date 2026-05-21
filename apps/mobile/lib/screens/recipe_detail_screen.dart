@@ -259,10 +259,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         final ingredients = _recipe?['ingredients'] as List<dynamic>? ?? [];
         for (final ing in ingredients) {
           final ingMap = ing is Map ? ing : {'raw': ing.toString()};
+          final rawQuantity = ingMap['quantity'];
+          final parsedQuantity = rawQuantity is num
+              ? rawQuantity
+              : num.tryParse(rawQuantity?.toString() ?? '');
           await Supabase.instance.client.from('shopping_items').insert({
+            'household_id': _householdMember!['household_id'],
             'shopping_list_id': selectedListId,
             'name': ingMap['raw'] ?? ingMap['name'] ?? ing.toString(),
-            'quantity': ingMap['quantity']?.toString() ?? '',
+            'quantity': parsedQuantity,
+            'display_quantity': ingMap['raw']?.toString(),
             'purchased': false,
           });
         }
