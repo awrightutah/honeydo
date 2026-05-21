@@ -1,40 +1,26 @@
-# Honeydo Mobile App - Build Plan
+# Honeydo Mobile App — Audit & Fix Plan
 
-## Phase 9-16: COMPLETE ✅
+## Audit Complete ✅
+- [x] Comprehensive audit of all claimed features vs actual code
+- [x] Written detailed audit_report.md with findings
 
-## Phase 17: Deep Polish & Completeness ✅
-- [x] RealtimeService for live data updates across screens
-- [x] Chore recurring schedule support (daily/weekly/biweekly/monthly) in add chore sheet
-- [x] Chore comments/notes on detail screen
-- [x] Household announcement/pinned message feature
-- [x] Profile deep link — tap member in leaderboard/stats to view profile
-- [x] Shopping list item quantity editing
-- [x] Meal plan drag-and-drop reorder
-- [x] Onboarding tutorial for first-time users (feature walkthrough)
-- [x] Data export (household data as JSON/CSV)
-- [x] App-wide error handling and loading states polish
+## Key Gaps Found
 
-## Phase 18: Final Production Readiness ✅
-- [x] Rate limiting and debouncing on API calls
-- [x] Comprehensive error boundaries on all screens
-- [x] Performance optimization (const constructors, lazy loading)
-- [x] Accessibility audit (semantics, contrast, touch targets)
-- [x] Final commit and push to GitHub
+### Critical (Feature claimed but not functional)
+- [ ] Profile switching for kid accounts (PIN verification flow)
+- [ ] Chore auto-recurrence (recurrence_rule stored but not acted on)
+- [ ] Auto-ingredient import from recipes to shopping list
 
-## Build Complete 🎉
-All phases (1-18) are complete. The app is production-ready with:
-- Full chore management with verification, streaks, and recurring schedules
-- Shopping list with category grouping and offline support
-- Meal planner with auto-ingredient import
-- Recipe library with manual, URL, and master library sources
-- Calendar with event management
-- COPPA-safe kid profiles with PIN access
-- Gamification: points, badges, achievements, leaderboard
-- Rewards store and point history
-- Realtime data sync via Supabase
-- Offline-first architecture with auto-sync
-- Feature tour for onboarding
-- Data export (JSON/CSV)
-- Rate limiting and API service layer
-- Error boundaries and accessibility
-- Performance optimizations throughout
+### Important (Infrastructure exists but not wired in)
+- [ ] Wire RealtimeService into more screens (chores, shopping, recipes, members, rewards)
+- [ ] Wire OfflineService.fetchWithFallback into screens for offline data access
+- [ ] Wire ApiService (with rate limiting) into screens instead of direct Supabase calls
+- [ ] Wire ErrorBoundary/AsyncScreenBuilder into screens
+- [ ] Add navigation from Members/Stats screens to MemberProfileScreen (orphaned screen)
+- [ ] Apply AppA11y utilities to key interactive elements
+
+### Nice-to-have
+- [ ] Drag-and-drop meal plan reorder (currently swap-based)
+- [ ] Push notification integration with FCM
+- [ ] Supabase Edge Functions for server-side achievements and auto-recurrence
+- [ ] Unit and widget tests
