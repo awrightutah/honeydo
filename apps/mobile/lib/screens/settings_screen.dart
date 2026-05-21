@@ -266,8 +266,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Household updated!'))
-                      ),
+                        const SnackBar(content: Text('Household updated!')),
+                      );
                     }
                   } catch (e) {
                     if (mounted) {

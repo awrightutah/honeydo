@@ -4,6 +4,21 @@ import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import 'shopping_category_screen.dart';
 
+const List<String> _shoppingCategories = [
+  'Produce',
+  'Dairy',
+  'Meat & Seafood',
+  'Pantry',
+  'Frozen',
+  'Bakery',
+  'Beverages',
+  'Snacks',
+  'Household',
+  'Personal Care',
+  'Pet Supplies',
+  'Other',
+];
+
 /// Full shopping list screen with multi-store support, manual entry,
 /// recipe ingredient import, purchased tracking, and category grouping.
 class ShoppingListScreen extends StatefulWidget {
@@ -305,7 +320,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                 ),
                 items: [
                   const DropdownMenuItem<String>(value: null, child: Text('No category')),
-                  ..._ShoppingListContent._categories.map((c) => DropdownMenuItem<String>(value: c, child: Text(c))),
+                  ..._shoppingCategories.map((c) => DropdownMenuItem<String>(value: c, child: Text(c))),
                 ],
                 onChanged: (v) => selectedCategory = v,
               ),
@@ -751,7 +766,6 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
   String? _selectedStoreId;
   bool _isLoading = false;
 
-  static const _categories = ['Produce', 'Dairy', 'Meat & Seafood', 'Pantry', 'Frozen', 'Bakery', 'Beverages', 'Snacks', 'Household', 'Personal Care', 'Pet Supplies', 'Other'];
 
   static const _categoryEmojis = {
     'Produce': '🥬', 'Dairy': '🥛', 'Meat & Seafood': '🥩', 'Pantry': '🫘',
@@ -873,10 +887,10 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
               height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
+                itemCount: _shoppingCategories.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
                 itemBuilder: (context, i) {
-                  final cat = _categories[i];
+                  final cat = _shoppingCategories[i];
                   final selected = _selectedCategory == cat;
                   return ChoiceChip(
                     label: Text('${_categoryEmojis[cat]} ${cat}'),
