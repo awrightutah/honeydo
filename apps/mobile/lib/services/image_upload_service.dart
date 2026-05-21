@@ -4,6 +4,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 
+/// Normalizes an image MIME type so Supabase Storage accepts it.
+/// iOS picks JPEGs with extension ".jpg", which produces "image/jpg" —
+/// Supabase rejects that with 415 since the canonical type is "image/jpeg".
+String _normalizeImageMime(String mime) {
+  final lower = mime.toLowerCase();
+  return lower == 'image/jpg' ? 'image/jpeg' : lower;
+}
+
 /// Service for uploading images to Supabase Storage buckets.
 class ImageUploadService {
   static final _supabase = Supabase.instance.client;
@@ -47,7 +55,7 @@ class ImageUploadService {
       filePath,
       fileBytes,
       fileOptions: FileOptions(
-        contentType: 'image/$fileExt',
+        contentType: _normalizeImageMime('image/$fileExt'),
         upsert: true,
       ),
     );

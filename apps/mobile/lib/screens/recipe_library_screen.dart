@@ -1082,6 +1082,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'recipes-fab',
         onPressed: () {
           showModalBottomSheet(
             context: context,

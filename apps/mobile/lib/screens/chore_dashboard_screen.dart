@@ -364,6 +364,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
                 ),
       floatingActionButton: _household != null
           ? FloatingActionButton.extended(
+              heroTag: 'chores-fab',
               onPressed: _showAddChoreSheet,
               icon: const Icon(Icons.add_rounded),
               label: const Text('Add Chore'),
