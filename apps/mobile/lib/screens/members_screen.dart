@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
 import 'member_profile_screen.dart';
 
@@ -88,7 +89,7 @@ class _MembersScreenState extends State<MembersScreen> {
       }
 
       // Generate a new code
-      final code = _generateCode();
+      final code = generateInviteCode();
       await Supabase.instance.client.from('household_invites').insert({
         'household_id': _household!['id'],
         'code': code,
@@ -110,15 +111,6 @@ class _MembersScreenState extends State<MembersScreen> {
         );
       }
     }
-  }
-
-  String _generateCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars
-    final buffer = StringBuffer();
-    for (int i = 0; i < 6; i++) {
-      buffer.write(chars[DateTime.now().microsecond % chars.length]);
-    }
-    return buffer.toString();
   }
 
   void _showAddSubProfileSheet() {

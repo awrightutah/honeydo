@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
 
 class InviteManagementScreen extends StatefulWidget {
@@ -78,7 +79,7 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
 
     try {
       // Generate a random 6-character code
-      final code = _generateInviteCode();
+      final code = generateInviteCode();
       final expiresAt = DateTime.now().add(Duration(days: expiryDays));
 
       // Get the profile id for created_by
@@ -106,21 +107,6 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
         );
       }
     }
-  }
-
-  String _generateInviteCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final buffer = StringBuffer();
-    for (int i = 0; i < 6; i++) {
-      buffer.write(chars[DateTime.now().microsecondsSinceEpoch % chars.length]);
-    }
-    // Add some randomness
-    final random = DateTime.now().millisecondsSinceEpoch;
-    buffer.clear();
-    for (int i = 0; i < 6; i++) {
-      buffer.write(chars[(random + i * 7) % chars.length]);
-    }
-    return buffer.toString();
   }
 
   Future<void> _revokeInvite(Map<String, dynamic> invite) async {
