@@ -98,7 +98,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
           .select()
           .eq('household_id', householdId)
           .eq('assigned_to_member_id', myMemberId)
-          .inFilter('status', ['assigned', 'pending'])
+          .inFilter('status', ['assigned', 'in_progress'])
           .order('due_at', ascending: true);
 
       // Load chores pending verification (if admin)
@@ -112,12 +112,14 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
             .order('completed_at', ascending: true);
       }
 
+      if (!mounted) return;
       setState(() {
         _myChores = List<Map<String, dynamic>>.from(myChores);
         _pendingVerification = List<Map<String, dynamic>>.from(pendingVerif);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = 'Could not load chores. Pull down to retry.';
@@ -195,7 +197,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
       if (approved) {
         // Update chore status
         await Supabase.instance.client.from('chores').update({
-          'status': 'completed',
+          'status': 'verified',
           'verified_at': DateTime.now().toIso8601String(),
           'verified_by_member_id': _myMembership!['id'],
         }).eq('id', choreId);
@@ -204,21 +206,22 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
         final assignedMemberId = chore['assigned_to_member_id'] as String;
         final assignedMember = await Supabase.instance.client
             .from('household_members')
-            .select('user_id')
+            .select('auth_user_id')
             .eq('id', assignedMemberId)
             .single();
 
         await Supabase.instance.client.rpc('award_points', params: {
-          'p_user_id': assignedMember['user_id'],
+          'p_auth_user_id': assignedMember['auth_user_id'],
           'p_household_id': chore['household_id'],
           'p_points': points + (chore['bonus_points'] ?? 0),
-          'p_reason': 'chore_completion',
-          'p_reference_id': choreId,
+          'p_note': 'chore_completion',
+          'p_source_table': 'chores',
+          'p_source_id': choreId,
         });
 
         // Check for new achievements
         await Supabase.instance.client.rpc('check_and_award_achievements', params: {
-          'p_user_id': assignedMember['user_id'],
+          'p_auth_user_id': assignedMember['auth_user_id'],
           'p_household_id': chore['household_id'],
         });
 

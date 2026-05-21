@@ -260,6 +260,11 @@ class _FeatureTourOverlayState extends State<FeatureTourOverlay>
                               onPressed: _next,
                               style: FilledButton.styleFrom(
                                 backgroundColor: step.color,
+                                // Override the global filledButtonTheme
+                                // (Size.fromHeight(52) → width: double.infinity)
+                                // which forces infinite width inside a Row.
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 28,
                                   vertical: 14,
