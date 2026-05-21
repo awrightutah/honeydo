@@ -328,7 +328,6 @@ class _SearchScreenState extends State<SearchScreen> {
           MaterialPageRoute(
             builder: (_) => RecipeDetailScreen(
               recipeId: item['id'],
-              isHousehold: true,
             ),
           ),
         );

@@ -51,7 +51,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
             .from('chores')
             .select('id, title, status, completed_at, point_value, assigned_to_member_id, household_members!chores_assigned_to_member_id_fkey(display_name, kind)')
             .eq('household_id', householdId)
-            .inSet('status', ['completed', 'verified', 'pending_verification'])
+            .inFilter('status', ['completed', 'verified', 'pending_verification'])
             .order('completed_at', ascending: false)
             .limit(20);
 

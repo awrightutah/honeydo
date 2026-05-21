@@ -212,7 +212,7 @@ class _FeatureTourOverlayState extends State<FeatureTourOverlay>
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
+                            color: AppColors.charcoal,
                           ),
                           textAlign: TextAlign.center,
                         ),

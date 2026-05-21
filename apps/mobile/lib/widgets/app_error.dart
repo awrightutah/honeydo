@@ -56,7 +56,7 @@ class AppError {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: AppColors.navy,
+        backgroundColor: AppColors.charcoal,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(12),
       ),

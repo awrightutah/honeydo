@@ -50,7 +50,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
             .from('chores')
             .select('id')
             .eq('assigned_to_member_id', widget.memberId)
-            .in('status', ['verified', 'completed']),
+            .inFilter('status', ['verified', 'completed']),
         // Total points earned
         Supabase.instance.client
             .from('point_transactions')

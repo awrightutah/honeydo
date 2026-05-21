@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 /// Debouncer — delays execution until the user stops triggering for [delay].
 class Debouncer {

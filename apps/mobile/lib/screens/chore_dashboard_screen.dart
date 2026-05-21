@@ -98,7 +98,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
           .select()
           .eq('household_id', householdId)
           .eq('assigned_to_member_id', myMemberId)
-          .inSet('status', ['assigned', 'pending'])
+          .inFilter('status', ['assigned', 'pending'])
           .order('due_at', ascending: true);
 
       // Load chores pending verification (if admin)

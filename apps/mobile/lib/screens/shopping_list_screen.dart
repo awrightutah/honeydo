@@ -304,8 +304,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                   border: OutlineInputBorder(),
                 ),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('No category')),
-                  ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                  const DropdownMenuItem<String>(value: null, child: Text('No category')),
+                  ..._ShoppingListContent._categories.map((c) => DropdownMenuItem<String>(value: c, child: Text(c))),
                 ],
                 onChanged: (v) => selectedCategory = v,
               ),
@@ -966,7 +966,7 @@ class _AddFromRecipeSheetState extends State<_AddFromRecipeSheet> {
                 prefixIcon: Icon(Icons.menu_book_rounded),
                 border: OutlineInputBorder(),
               ),
-              items: widget.recipes.map((r) => DropdownMenuItem(
+              items: widget.recipes.map((r) => DropdownMenuItem<String>(
                 value: r['id'],
                 child: Text(r['title'] ?? 'Untitled', overflow: TextOverflow.ellipsis),
               )).toList(),

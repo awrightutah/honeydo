@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'rate_limit_service.dart';
 
@@ -79,13 +80,14 @@ class ApiService {
           query = query.eq(entry.key, entry.value);
         }
       }
+      dynamic resultQuery = query;
       if (orderBy != null) {
-        query = query.order(orderBy, ascending: ascending);
+        resultQuery = resultQuery.order(orderBy, ascending: ascending);
       }
       if (limit != null) {
-        query = query.limit(limit);
+        resultQuery = resultQuery.limit(limit);
       }
-      final result = await query;
+      final result = await resultQuery;
       return List<Map<String, dynamic>>.from(result);
     }, maxRetries: maxRetries);
   }

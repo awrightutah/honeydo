@@ -223,7 +223,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: selectedListId,
-                items: _shoppingLists.map((list) => DropdownMenuItem(
+                items: _shoppingLists.map((list) => DropdownMenuItem<String>(
                   value: list['id'],
                   child: Text(list['name'] ?? 'Unnamed List'),
                 )).toList(),

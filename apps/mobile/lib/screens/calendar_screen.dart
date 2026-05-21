@@ -101,14 +101,13 @@ class _CalendarScreenState extends State<CalendarScreen>
           .select('*, tag:calendar_tags(name, color, emoji), creator:household_members!created_by_member_id(display_name)')
           .eq('household_id', _household!['id'])
           .gte('starts_at', monthStart.toIso8601String())
-          .lte('starts_at', monthEnd.toIso8601String())
-          .order('starts_at');
+          .lte('starts_at', monthEnd.toIso8601String());
 
       if (_filterTagId != null) {
         query = query.eq('tag_id', _filterTagId!);
       }
 
-      final events = await query;
+      final events = await query.order('starts_at');
 
       setState(() {
         _events = List<Map<String, dynamic>>.from(events);

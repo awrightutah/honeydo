@@ -132,7 +132,7 @@ class OfflineService {
   /// Fetch data with offline fallback: try online first, fall back to cache
   Future<Map<String, dynamic>?> fetchWithFallback(
     String key, {
-    required Future<Map<String, dynamic> Function()> onlineFetch,
+    required Future<Map<String, dynamic>> Function() onlineFetch,
     Duration maxAge = const Duration(minutes: 15),
     bool forceRefresh = false,
   }) async {

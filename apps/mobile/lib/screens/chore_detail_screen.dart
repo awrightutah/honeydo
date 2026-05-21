@@ -22,6 +22,8 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   bool _isEditing = false;
   bool _isSendingComment = false;
 
+  final _formKey = GlobalKey<FormState>();
+
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _pointsController = TextEditingController();
@@ -375,6 +377,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
 
   Widget _buildViewMode(Map<String, dynamic>? assignee, bool canEdit) {
     final status = _chore?['status'] ?? 'assigned';
+    final isAdmin = _householdMember?['role'] == 'admin';
     final frequency = _chore?['recurrence_rule'] ?? 'once';
     final pointValue = _chore?['point_value'] ?? 10;
 

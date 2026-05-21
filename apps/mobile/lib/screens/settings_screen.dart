@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
+import '../main.dart';
 import 'profile_screen.dart';
 import 'subscription_screen.dart';
 import 'feedback_screen.dart';
@@ -265,7 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Household updated!')),
+                        const SnackBar(content: Text('Household updated!'))
                       ),
                     }
                   } catch (e) {
