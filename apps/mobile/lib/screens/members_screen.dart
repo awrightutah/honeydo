@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
 import 'member_profile_screen.dart';
@@ -420,24 +418,27 @@ class _AddSubProfileSheetState extends State<_AddSubProfileSheet> {
     setState(() => _isLoading = true);
 
     try {
-      // SECURITY DEBT (CQ2 in audits/2026-05-pass-1a-flutter-v3.md):
-      // SHA-256 with no salt over a 4-6 digit PIN is recoverable in under
-      // one second via a complete rainbow table (key space <= 10^6). Anyone
-      // with SELECT access to `pin_hash` can recover every kid PIN.
-      // Proper fix: move verification to a server-side Postgres function
-      // using pgcrypto (`crypt(pin, gen_salt('bf'))` or scrypt) with a
-      // per-row salt, and revoke client SELECT on the `pin_hash` column.
-      final bytes = utf8.encode(pin);
-      final pinHash = sha256.convert(bytes).toString();
-      await Supabase.instance.client.from('household_members').insert({
-        'household_id': widget.householdId,
-        'kind': 'sub_profile',
-        'role': 'member',
-        'display_name': name,
-        'pin_hash': pinHash,
-        'points_balance': 0,
-        'is_active': true,
-        'created_by': Supabase.instance.client.auth.currentUser!.id,
+      // CQ2 resolved 2026-05-22: PIN is hashed server-side via the
+      // set_member_pin RPC (pgcrypto bcrypt, per-row salt). The hash
+      // lives in the locked-down member_pin_secrets table and never
+      // travels the wire. See supabase/migrations/0013_pin_hashing_bcrypt.sql.
+      final inserted = await Supabase.instance.client
+          .from('household_members')
+          .insert({
+            'household_id': widget.householdId,
+            'kind': 'sub_profile',
+            'role': 'member',
+            'display_name': name,
+            'points_balance': 0,
+            'is_active': true,
+            'created_by': Supabase.instance.client.auth.currentUser!.id,
+          })
+          .select('id')
+          .single();
+
+      await Supabase.instance.client.rpc('set_member_pin', params: {
+        'p_member_id': inserted['id'],
+        'p_pin': pin,
       });
 
       if (mounted) Navigator.pop(context);
