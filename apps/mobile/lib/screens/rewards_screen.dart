@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/permissions.dart';
 
 /// Rewards screen with reward catalog, redemption, and history.
 class RewardsScreen extends StatefulWidget {
@@ -830,7 +831,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (isPending && _myMembership?['role'] == 'admin')
+                    if (isPending && Permissions.canManageRewards(_myMembership))
                       TextButton(
                         onPressed: () => _approveRedemption(redemption),
                         child: const Text('Approve'),

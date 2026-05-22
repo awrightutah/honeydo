@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/permissions.dart';
 
 /// Screen for managing household announcements/pinned messages.
 /// Admins can create, edit, and delete announcements.
@@ -39,7 +40,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       if (memberships.isNotEmpty) {
         _myMembership = memberships[0];
         _household = memberships[0]['households'];
-        _isAdmin = (_myMembership!['role'] == 'owner' || _myMembership!['role'] == 'admin');
+        _isAdmin = Permissions.canManageAnnouncements(_myMembership);
 
         // Load announcements
         final announcements = await Supabase.instance.client

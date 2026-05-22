@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
+import '../utils/permissions.dart';
 import 'chore_dashboard_screen.dart';
 import 'meal_planner_screen.dart';
 import 'shopping_list_screen.dart';
@@ -561,8 +562,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   }
 
   Future<void> _promptToSetMissingPin(Map<String, dynamic> member) async {
-    final role = _myMembership?['role'];
-    final isAdmin = role == 'owner' || role == 'admin';
+    final isAdmin = Permissions.canManageMembers(_myMembership);
 
     if (!isAdmin) {
       if (mounted) {

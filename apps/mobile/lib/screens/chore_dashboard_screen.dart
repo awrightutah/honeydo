@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
+import '../utils/permissions.dart';
 import 'chore_detail_screen.dart';
 
 class ChoreDashboardScreen extends StatefulWidget {
@@ -103,7 +104,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
 
       // Load chores pending verification (if admin)
       List<Map<String, dynamic>> pendingVerif = [];
-      if (_myMembership!['role'] == 'admin') {
+      if (Permissions.canVerifyChores(_myMembership)) {
         pendingVerif = await Supabase.instance.client
             .from('chores')
             .select('*, assignee:household_members!assigned_to_member_id(display_name)')
@@ -278,7 +279,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isAdmin = _myMembership?['role'] == 'admin';
+    final isAdmin = Permissions.canVerifyChores(_myMembership);
     final totalPending = _myChores.length;
     final totalVerification = _pendingVerification.length;
 

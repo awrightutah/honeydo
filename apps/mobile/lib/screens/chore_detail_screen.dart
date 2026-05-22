@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/permissions.dart';
 
 /// Chore detail screen for viewing, editing, and managing individual chores.
 class ChoreDetailScreen extends StatefulWidget {
@@ -342,7 +343,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
       );
     }
 
-    final isAdmin = _householdMember?['role'] == 'admin';
+    final isAdmin = Permissions.canEditAnyChore(_householdMember);
     final isAssignedToMe = _chore?['assigned_to_member_id'] == _householdMember?['id'];
     final canEdit = isAdmin || isAssignedToMe;
     final assignee = _chore?['household_members'];
@@ -377,7 +378,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
 
   Widget _buildViewMode(Map<String, dynamic>? assignee, bool canEdit) {
     final status = _chore?['status'] ?? 'assigned';
-    final isAdmin = _householdMember?['role'] == 'admin';
+    final isAdmin = Permissions.canVerifyChores(_householdMember);
     final frequency = _chore?['recurrence_rule'] ?? 'once';
     final pointValue = _chore?['point_value'] ?? 10;
 

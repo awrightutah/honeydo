@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
+import '../utils/permissions.dart';
 import 'member_profile_screen.dart';
 
 /// Screen for managing household members: adding sub-profiles (kids),
@@ -124,7 +125,7 @@ class _MembersScreenState extends State<MembersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = _myMembership?['role'] == 'admin';
+    final isAdmin = Permissions.canManageMembers(_myMembership);
     final adultCount = _members.where((m) => m['kind'] == 'adult_auth_user').length;
     final childCount = _members.where((m) => m['kind'] == 'sub_profile').length;
 

@@ -89,11 +89,11 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
 
       final householdId = household['id'];
 
-      // Add current user as admin member (adult_auth_user kind)
+      // Add current user as owner of the new household (adult_auth_user kind)
       await Supabase.instance.client.from('household_members').insert({
         'household_id': householdId,
         'auth_user_id': user.id,
-        'role': 'admin',
+        'role': 'owner',
         'kind': 'adult_auth_user',
         'display_name': user.userMetadata?['display_name'] ?? user.email?.split('@').first ?? 'Admin',
         'points_balance': 0,

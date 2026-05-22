@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
+import '../utils/permissions.dart';
 
 class InviteManagementScreen extends StatefulWidget {
   const InviteManagementScreen({super.key});
@@ -59,7 +60,7 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
     }
   }
 
-  bool get _isAdmin => _myMembership?['role'] == 'admin' || _myMembership?['role'] == 'owner';
+  bool get _isAdmin => Permissions.canInviteMembers(_myMembership);
 
   Future<void> _createInvite() async {
     if (_household == null) return;
