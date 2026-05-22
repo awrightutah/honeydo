@@ -443,9 +443,10 @@ class _AddSubProfileSheetState extends State<_AddSubProfileSheet> {
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
+      debugPrint('create sub_profile failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not create kid profile. Please try again.')),
+          SnackBar(content: Text('Could not create kid profile: $e')),
         );
       }
     } finally {

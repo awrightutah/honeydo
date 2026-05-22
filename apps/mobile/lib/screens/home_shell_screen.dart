@@ -648,10 +648,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           SnackBar(content: Text('PIN set for ${member['display_name']}. They can switch in now.')),
         );
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('set_member_pin failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not set PIN. Please try again.')),
+          SnackBar(content: Text('Could not set PIN: $e')),
         );
       }
     }

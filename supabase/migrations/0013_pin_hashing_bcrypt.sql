@@ -95,7 +95,7 @@ BEGIN
 
   -- Hash and upsert.
   INSERT INTO public.member_pin_secrets (member_id, pin_hash, updated_at)
-    VALUES (p_member_id, crypt(p_pin, gen_salt('bf', 8)), now())
+    VALUES (p_member_id, extensions.crypt(p_pin, extensions.gen_salt('bf'::text, 8)), now())
     ON CONFLICT (member_id) DO UPDATE
       SET pin_hash   = EXCLUDED.pin_hash,
           updated_at = now();
@@ -162,7 +162,7 @@ BEGIN
 
   -- bcrypt: crypt(plaintext, stored_hash) recomputes the same hash if
   -- the PIN matches, because the stored_hash carries its own salt + cost.
-  RETURN crypt(p_pin, v_stored_hash) = v_stored_hash;
+  RETURN extensions.crypt(p_pin, v_stored_hash) = v_stored_hash;
 END;
 $$;
 
