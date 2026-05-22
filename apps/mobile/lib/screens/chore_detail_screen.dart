@@ -22,6 +22,8 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   bool _isEditing = false;
   bool _isSendingComment = false;
 
+  final _formKey = GlobalKey<FormState>();
+
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _pointsController = TextEditingController();
@@ -43,7 +45,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   final List<Map<String, String>> _statuses = [
     {'value': 'assigned', 'label': 'Assigned'},
     {'value': 'in_progress', 'label': 'In Progress'},
-    {'value': 'completed', 'label': 'Completed'},
+    {'value': 'pending_verification', 'label': 'Completed'},
     {'value': 'verified', 'label': 'Verified'},
     {'value': 'skipped', 'label': 'Skipped'},
   ];
@@ -303,7 +305,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     return switch (status) {
       'assigned' => AppColors.skyBlue,
       'in_progress' => AppColors.honeyGold,
-      'completed' => AppColors.grassGreen,
+      'pending_verification' => AppColors.grassGreen,
       'verified' => const Color(0xFF4CAF50),
       'skipped' => Colors.grey,
       _ => Colors.grey,
@@ -314,7 +316,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     return switch (status) {
       'assigned' => Icons.assignment,
       'in_progress' => Icons.pending,
-      'completed' => Icons.check_circle,
+      'pending_verification' => Icons.check_circle,
       'verified' => Icons.verified,
       'skipped' => Icons.skip_next,
       _ => Icons.help,
@@ -375,6 +377,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
 
   Widget _buildViewMode(Map<String, dynamic>? assignee, bool canEdit) {
     final status = _chore?['status'] ?? 'assigned';
+    final isAdmin = _householdMember?['role'] == 'admin';
     final frequency = _chore?['recurrence_rule'] ?? 'once';
     final pointValue = _chore?['point_value'] ?? 10;
 
@@ -508,8 +511,8 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
                 if (status == 'assigned')
                   _buildActionChip('Start', Icons.play_arrow_rounded, AppColors.skyBlue, () => _quickUpdateStatus('in_progress')),
                 if (status == 'in_progress' || status == 'assigned')
-                  _buildActionChip('Complete', Icons.check_circle_rounded, AppColors.grassGreen, () => _quickUpdateStatus('completed')),
-                if (status == 'completed' && isAdmin)
+                  _buildActionChip('Complete', Icons.check_circle_rounded, AppColors.grassGreen, () => _quickUpdateStatus('pending_verification')),
+                if (status == 'pending_verification' && isAdmin)
                   _buildActionChip('Verify', Icons.verified_rounded, const Color(0xFF4CAF50), () => _quickUpdateStatus('verified')),
                 if (status != 'skipped')
                   _buildActionChip('Skip', Icons.skip_next_rounded, Colors.grey, () => _quickUpdateStatus('skipped')),
@@ -672,7 +675,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$verifier ${status == 'verified' ? 'verified' : status == 'completed' ? 'completed' : 'updated'} this chore',
+                  '$verifier ${status == 'verified' ? 'verified' : status == 'pending_verification' ? 'completed' : 'updated'} this chore',
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 ),
                 Text(
@@ -867,10 +870,19 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
 
   Future<void> _quickUpdateStatus(String newStatus) async {
     try {
+      final previousChore = _chore == null ? null : Map<String, dynamic>.from(_chore!);
+      final updates = <String, dynamic>{'status': newStatus};
+      if (newStatus == 'pending_verification' || newStatus == 'verified') {
+        updates['completed_at'] = DateTime.now().toIso8601String();
+      }
       await Supabase.instance.client
           .from('chores')
-          .update({'status': newStatus})
+          .update(updates)
           .eq('id', widget.choreId);
+
+      if ((newStatus == 'pending_verification' || newStatus == 'verified') && previousChore != null) {
+        await _createNextRecurringChoreIfNeeded(previousChore);
+      }
 
       await _loadData();
 
@@ -886,6 +898,52 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
         );
       }
     }
+  }
+
+
+  Future<void> _createNextRecurringChoreIfNeeded(Map<String, dynamic> chore) async {
+    final recurrence = chore['recurrence_rule'] as String?;
+    if (recurrence == null || recurrence == 'once') return;
+
+    DateTime baseDate;
+    if (chore['due_at'] != null) {
+      baseDate = DateTime.parse(chore['due_at']).toLocal();
+    } else {
+      baseDate = DateTime.now();
+    }
+
+    final nextDue = switch (recurrence) {
+      'daily' => baseDate.add(const Duration(days: 1)),
+      'weekly' => baseDate.add(const Duration(days: 7)),
+      'biweekly' => baseDate.add(const Duration(days: 14)),
+      'monthly' => DateTime(baseDate.year, baseDate.month + 1, baseDate.day, baseDate.hour, baseDate.minute),
+      _ => null,
+    };
+    if (nextDue == null) return;
+
+    final nextExists = await Supabase.instance.client
+        .from('chores')
+        .select('id')
+        .eq('household_id', chore['household_id'])
+        .eq('title', chore['title'])
+        .eq('assigned_to_member_id', chore['assigned_to_member_id'])
+        .eq('recurrence_rule', recurrence)
+        .eq('due_at', nextDue.toUtc().toIso8601String())
+        .limit(1);
+    if (nextExists.isNotEmpty) return;
+
+    final insert = Map<String, dynamic>.from(chore)
+      ..remove('id')
+      ..remove('created_at')
+      ..remove('updated_at')
+      ..remove('completed_at')
+      ..remove('verified_at')
+      ..remove('verified_by_member_id')
+      ..remove('household_members')
+      ..['status'] = 'assigned'
+      ..['due_at'] = nextDue.toUtc().toIso8601String();
+
+    await Supabase.instance.client.from('chores').insert(insert);
   }
 
   String _formatTimestamp(String? ts) {

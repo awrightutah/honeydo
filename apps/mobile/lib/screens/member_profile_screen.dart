@@ -43,43 +43,38 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
       _member = member[0];
       final householdId = _member!['household_id'];
 
-      // Load stats in parallel
-      final results = await Future.wait([
-        // Total completed chores
-        Supabase.instance.client
-            .from('chores')
-            .select('id')
-            .eq('assigned_to_member_id', widget.memberId)
-            .in('status', ['verified', 'completed']),
-        // Total points earned
-        Supabase.instance.client
-            .from('point_transactions')
-            .select('amount')
-            .eq('member_id', widget.memberId)
-            .eq('transaction_type', 'earned'),
-        // Current streak (from leaderboard function)
-        Supabase.instance.client.rpc('get_leaderboard', params: {'p_household_id': householdId}),
-        // Recent chores
-        Supabase.instance.client
-            .from('chores')
-            .select('id, title, status, difficulty, point_value, due_at, completed_at')
-            .eq('assigned_to_member_id', widget.memberId)
-            .order('created_at', ascending: false)
-            .limit(10),
-        // Badges
-        Supabase.instance.client
-            .from('member_badges')
-            .select('*, badges(*)')
-            .eq('member_id', widget.memberId)
-            .order('earned_at', ascending: false)
-            .limit(20),
-      ]);
+      // Load stats. These are awaited separately to avoid Dart generic
+      // inference issues with mixed Supabase query builder result types.
+      final completedChores = await Supabase.instance.client
+          .from('chores')
+          .select('id')
+          .eq('assigned_to_member_id', widget.memberId)
+          .inFilter('status', ['verified', 'pending_verification']);
 
-      final completedChores = results[0] as List;
-      final pointsRows = results[1] as List;
-      final leaderboardResults = results[2] as List;
-      final recentChores = results[3] as List;
-      final badges = results[4] as List;
+      final pointsRows = await Supabase.instance.client
+          .from('point_transactions')
+          .select('amount')
+          .eq('member_id', widget.memberId)
+          .eq('type', 'earned');
+
+      final leaderboardResults = await Supabase.instance.client.rpc(
+        'get_leaderboard',
+        params: {'p_household_id': householdId},
+      );
+
+      final recentChores = await Supabase.instance.client
+          .from('chores')
+          .select('id, title, status, difficulty, point_value, due_at, completed_at')
+          .eq('assigned_to_member_id', widget.memberId)
+          .order('created_at', ascending: false)
+          .limit(10);
+
+      final badges = await Supabase.instance.client
+          .from('achievements')
+          .select('*')
+          .eq('member_id', widget.memberId)
+          .order('earned_at', ascending: false)
+          .limit(20);
 
       // Calculate total points
       int totalPoints = 0;
@@ -301,9 +296,8 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
       spacing: 8,
       runSpacing: 8,
       children: _badges.map((badge) {
-        final badgeData = badge['badges'] as Map<String, dynamic>?;
-        final name = badgeData?['name'] ?? 'Badge';
-        final emoji = badgeData?['emoji'] ?? '\ud83c\udfc6';
+        final name = badge['badge_name'] ?? 'Badge';
+        final emoji = badge['icon'] ?? '\ud83c\udfc6';
         final earnedAt = badge['earned_at'];
 
         return Container(

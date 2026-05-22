@@ -102,7 +102,7 @@ BEGIN
       WHERE auth_user_id = p_auth_user_id AND household_id = p_household_id
     )
       AND household_id = p_household_id
-      AND status = 'completed'
+      AND status = 'verified'
       AND completed_at::date = CURRENT_DATE
   ) INTO v_has_chore;
 
@@ -119,7 +119,7 @@ BEGIN
         WHERE auth_user_id = p_auth_user_id AND household_id = p_household_id
       )
         AND household_id = p_household_id
-        AND status = 'completed'
+        AND status = 'verified'
         AND completed_at::date = v_check_date
     ) INTO v_has_chore;
 
@@ -162,7 +162,7 @@ BEGIN
   FROM chores
   WHERE assigned_to_member_id = v_member_id
     AND household_id = p_household_id
-    AND status = 'completed';
+    AND status = 'verified';
 
   v_current_streak := calculate_streak(p_auth_user_id, p_household_id);
 

@@ -12,8 +12,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// ```
 ///
 /// Access the client anywhere via `Supabase.instance.client`.
-class SupabaseClient {
-  SupabaseClient._();
+class HoneydoSupabaseClient {
+  HoneydoSupabaseClient._();
 
   /// Get the Supabase client instance.
   static SupabaseClient get instance => Supabase.instance.client;

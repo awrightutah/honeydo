@@ -223,7 +223,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: selectedListId,
-                items: _shoppingLists.map((list) => DropdownMenuItem(
+                items: _shoppingLists.map((list) => DropdownMenuItem<String>(
                   value: list['id'],
                   child: Text(list['name'] ?? 'Unnamed List'),
                 )).toList(),
@@ -259,11 +259,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         final ingredients = _recipe?['ingredients'] as List<dynamic>? ?? [];
         for (final ing in ingredients) {
           final ingMap = ing is Map ? ing : {'raw': ing.toString()};
+          final rawQuantity = ingMap['quantity'];
+          final parsedQuantity = rawQuantity is num
+              ? rawQuantity
+              : num.tryParse(rawQuantity?.toString() ?? '');
           await Supabase.instance.client.from('shopping_items').insert({
+            'household_id': _householdMember!['household_id'],
             'shopping_list_id': selectedListId,
             'name': ingMap['raw'] ?? ingMap['name'] ?? ing.toString(),
-            'quantity': ingMap['quantity']?.toString() ?? '',
-            'is_purchased': false,
+            'quantity': parsedQuantity,
+            'display_quantity': ingMap['raw']?.toString(),
+            'purchased': false,
           });
         }
 
@@ -340,12 +346,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     if (confirmed == true) {
       try {
-        await Supabase.instance.client.from('meal_plan_entries').insert({
+        await Supabase.instance.client.from('meal_plans').insert({
           'household_id': _householdMember!['household_id'],
           'recipe_id': widget.recipeId,
-          'meal_date': selectedDate.toIso8601String().split('T')[0],
+          'planned_for': selectedDate.toIso8601String().split('T')[0],
           'meal_type': selectedMealType,
-          'added_by_member_id': _householdMember!['id'],
+          'created_by_member_id': _householdMember!['id'],
         });
 
         if (mounted) {
@@ -910,7 +916,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             final ingMap = ing is Map ? ing : {'raw': ing.toString()};
             return ListTile(
               dense: true,
-              title: Text(ingMap['raw'] ?? ingMap['name'] ?? ing.toString()),
+              title: Text((ingMap['raw'] ?? ingMap['name'] ?? ing).toString()),
               trailing: IconButton(
                 icon: const Icon(Icons.delete_outline, size: 18),
                 onPressed: () => setState(() => _editIngredients.removeAt(index)),

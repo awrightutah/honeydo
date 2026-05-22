@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import 'member_profile_screen.dart';
 
 /// Household statistics dashboard with visual breakdowns of activity,
 /// chore completion rates, top contributors, and meal planning stats.
@@ -452,32 +453,39 @@ class _HouseholdStatsScreenState extends State<HouseholdStatsScreen> {
                               final name = member['display_name'] ?? 'Unknown';
                               final medals = ['🥇', '🥈', '🥉'];
 
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 28,
-                                      child: index < 3
-                                          ? Text(medals[index], style: const TextStyle(fontSize: 18))
-                                          : Text('${index + 1}', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade400)),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.honeyGold.withOpacity(.1),
-                                        borderRadius: BorderRadius.circular(100),
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => MemberProfileScreen(memberId: member['id'])),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 28,
+                                        child: index < 3
+                                            ? Text(medals[index], style: const TextStyle(fontSize: 18))
+                                            : Text('${index + 1}', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade400)),
                                       ),
-                                      child: Text(
-                                        '$points pts',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.honeyGold),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
                                       ),
-                                    ),
-                                  ],
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.honeyGold.withOpacity(.1),
+                                          borderRadius: BorderRadius.circular(100),
+                                        ),
+                                        child: Text(
+                                          '$points pts',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.honeyGold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             }),

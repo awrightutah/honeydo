@@ -94,6 +94,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
           .eq('household_id', householdId)
           .eq('is_active', true);
 
+      if (!mounted) return;
       setState(() {
         _householdRecipes = List<Map<String, dynamic>>.from(recipes);
         _masterRecipes = List<Map<String, dynamic>>.from(master);
@@ -101,12 +102,11 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading recipes: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading recipes: $e')),
+      );
     }
   }
 
@@ -213,7 +213,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
 
       // Increment added_count on master recipe
       await Supabase.instance.client.rpc('increment_master_recipe_added_count',
-          params: {'recipe_id': masterRecipe['id']});
+          params: {'p_recipe_id': masterRecipe['id']});
 
       await _loadData();
 
@@ -1082,6 +1082,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'recipes-fab',
         onPressed: () {
           showModalBottomSheet(
             context: context,

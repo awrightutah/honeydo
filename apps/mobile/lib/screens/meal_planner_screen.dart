@@ -378,14 +378,16 @@ class _DayCard extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: plannedMeal.isNotEmpty
-                    ? ...plannedMeal.map((meal) => _MealSlot(
-                          meal: meal,
-                          color: color,
-                          emoji: emoji,
-                          typeLabel: type,
-                          onDelete: () => onDeleteMeal(meal['id']),
-                          onMove: (newType) => onMoveMeal(meal['id'], newType),
-                        ))
+                    ? Column(
+                        children: plannedMeal.map((meal) => _MealSlot(
+                              meal: meal,
+                              color: color,
+                              emoji: emoji,
+                              typeLabel: type,
+                              onDelete: () => onDeleteMeal(meal['id']),
+                              onMove: (newType) => onMoveMeal(meal['id'], newType),
+                            )).toList(),
+                      )
                     : _EmptyMealSlot(
                         type: type,
                         emoji: emoji,
@@ -416,7 +418,7 @@ class _MealSlot extends StatelessWidget {
   final String emoji;
   final String typeLabel;
   final VoidCallback onDelete;
-  final VoidCallback(String mealType)? onMove;
+  final ValueChanged<String>? onMove;
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +451,6 @@ class _MealSlot extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => RecipeDetailScreen(
                       recipeId: recipeId,
-                      isHousehold: true,
                     ),
                   ),
                 );
@@ -492,7 +493,7 @@ class _MealSlot extends StatelessWidget {
                         style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     if (notes != null && notes.toString().isNotEmpty)
-                      Text(notes, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(notes.toString(), style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
@@ -518,7 +519,7 @@ class _MealSlot extends StatelessWidget {
 
   void _showMoveDialog(BuildContext context) {
     const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-    const mealEmoji = {'breakfast': '\ud83e\uudd5e', 'lunch': '\ud83e\udd57', 'dinner': '\ud83c\udf7d\ufe0f', 'snack': '\ud83c\udf6a'};
+    const mealEmoji = {'breakfast': '🥞', 'lunch': '🥗', 'dinner': '🍽️', 'snack': '🍪'};
 
     showModalBottomSheet(
       context: context,
@@ -531,7 +532,7 @@ class _MealSlot extends StatelessWidget {
             Text('Move to', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 16),
             ...mealTypes.where((t) => t != typeLabel.toLowerCase()).map((type) => ListTile(
-              leading: Text(mealEmoji[type] ?? '\ud83c\udf7d\ufe0f', style: const TextStyle(fontSize: 22)),
+              leading: Text(mealEmoji[type] ?? '🍽️', style: const TextStyle(fontSize: 22)),
               title: Text(type[0].toUpperCase() + type.substring(1), style: const TextStyle(fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);

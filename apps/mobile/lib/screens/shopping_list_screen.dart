@@ -4,6 +4,21 @@ import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import 'shopping_category_screen.dart';
 
+const List<String> _shoppingCategories = [
+  'Produce',
+  'Dairy',
+  'Meat & Seafood',
+  'Pantry',
+  'Frozen',
+  'Bakery',
+  'Beverages',
+  'Snacks',
+  'Household',
+  'Personal Care',
+  'Pet Supplies',
+  'Other',
+];
+
 /// Full shopping list screen with multi-store support, manual entry,
 /// recipe ingredient import, purchased tracking, and category grouping.
 class ShoppingListScreen extends StatefulWidget {
@@ -304,8 +319,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                   border: OutlineInputBorder(),
                 ),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('No category')),
-                  ..._categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                  const DropdownMenuItem<String>(value: null, child: Text('No category')),
+                  ..._shoppingCategories.map((c) => DropdownMenuItem<String>(value: c, child: Text(c))),
                 ],
                 onChanged: (v) => selectedCategory = v,
               ),
@@ -664,7 +679,12 @@ class _ShoppingItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = item['name'] ?? 'Unknown';
-    final quantity = item['display_quantity'] ?? item['quantity'];
+    final rawQuantity = item['display_quantity'] ?? item['quantity'];
+    final quantity = rawQuantity is num
+        ? (rawQuantity == rawQuantity.truncate()
+            ? rawQuantity.toInt().toString()
+            : rawQuantity.toString())
+        : rawQuantity?.toString();
     final purchased = item['purchased'] ?? false;
     final store = item['store']?['name'];
     final category = item['category'];
@@ -751,7 +771,6 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
   String? _selectedStoreId;
   bool _isLoading = false;
 
-  static const _categories = ['Produce', 'Dairy', 'Meat & Seafood', 'Pantry', 'Frozen', 'Bakery', 'Beverages', 'Snacks', 'Household', 'Personal Care', 'Pet Supplies', 'Other'];
 
   static const _categoryEmojis = {
     'Produce': '🥬', 'Dairy': '🥛', 'Meat & Seafood': '🥩', 'Pantry': '🫘',
@@ -873,10 +892,10 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
               height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
+                itemCount: _shoppingCategories.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
                 itemBuilder: (context, i) {
-                  final cat = _categories[i];
+                  final cat = _shoppingCategories[i];
                   final selected = _selectedCategory == cat;
                   return ChoiceChip(
                     label: Text('${_categoryEmojis[cat]} ${cat}'),
@@ -966,7 +985,7 @@ class _AddFromRecipeSheetState extends State<_AddFromRecipeSheet> {
                 prefixIcon: Icon(Icons.menu_book_rounded),
                 border: OutlineInputBorder(),
               ),
-              items: widget.recipes.map((r) => DropdownMenuItem(
+              items: widget.recipes.map((r) => DropdownMenuItem<String>(
                 value: r['id'],
                 child: Text(r['title'] ?? 'Untitled', overflow: TextOverflow.ellipsis),
               )).toList(),

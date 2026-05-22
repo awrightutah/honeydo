@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Centralized Supabase Realtime subscription manager.
 ///
- * Subscribes to Postgres changes for all core tables within a household
+/// Subscribes to Postgres changes for all core tables within a household
 /// and exposes ValueNotifiers that screens can listen to for reactive rebuilds.
 class RealtimeService {
   RealtimeService._();
@@ -33,7 +33,7 @@ class RealtimeService {
 
     // Chores
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => choresVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -46,7 +46,7 @@ class RealtimeService {
 
     // Shopping items
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => shoppingVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -59,7 +59,7 @@ class RealtimeService {
 
     // Meal plans
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => mealPlansVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -72,7 +72,7 @@ class RealtimeService {
 
     // Recipes
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => recipesVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -85,7 +85,7 @@ class RealtimeService {
 
     // Household members
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => membersVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -98,7 +98,7 @@ class RealtimeService {
 
     // Point transactions
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => pointsVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -111,7 +111,7 @@ class RealtimeService {
 
     // Rewards
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => rewardsVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
@@ -124,7 +124,7 @@ class RealtimeService {
 
     // Announcements
     _channel!.onPostgresChanges(
-      PostgresChangeEvent.all,
+      event: PostgresChangeEvent.all,
       callback: (_) => announcementsVersion.value++,
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,

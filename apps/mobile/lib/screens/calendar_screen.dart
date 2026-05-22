@@ -101,14 +101,13 @@ class _CalendarScreenState extends State<CalendarScreen>
           .select('*, tag:calendar_tags(name, color, emoji), creator:household_members!created_by_member_id(display_name)')
           .eq('household_id', _household!['id'])
           .gte('starts_at', monthStart.toIso8601String())
-          .lte('starts_at', monthEnd.toIso8601String())
-          .order('starts_at');
+          .lte('starts_at', monthEnd.toIso8601String());
 
       if (_filterTagId != null) {
         query = query.eq('tag_id', _filterTagId!);
       }
 
-      final events = await query;
+      final events = await query.order('starts_at');
 
       setState(() {
         _events = List<Map<String, dynamic>>.from(events);
@@ -370,15 +369,19 @@ class _CalendarScreenState extends State<CalendarScreen>
 
     if (dayEvents.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('📋', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 12),
-            Text('No events', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text('Tap + to add an event for this day.', style: Theme.of(context).textTheme.bodyMedium),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('📋', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 12),
+              Text('No events', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Tap + to add an event for this day.', style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
         ),
       );
     }
@@ -498,29 +501,32 @@ class _EventCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  if (startsAt != null && !allDay) ...[
-                    Icon(Icons.schedule_rounded, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatTime(startsAt, endsAt),
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(width: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (startsAt != null && !allDay) ...[
+                      Icon(Icons.schedule_rounded, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatTime(startsAt, endsAt),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    if (tagName != null) ...[
+                      if (tagEmoji != null) Text(tagEmoji, style: const TextStyle(fontSize: 12)),
+                      const SizedBox(width: 4),
+                      Text(tagName, style: TextStyle(fontSize: 12, color: tagColor, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 12),
+                    ],
+                    if (reminder != null) ...[
+                      Icon(Icons.notifications_active_rounded, size: 14, color: AppColors.honeyGold),
+                      const SizedBox(width: 4),
+                      Text('${reminder}m before', style: const TextStyle(fontSize: 12, color: AppColors.honeyGold)),
+                    ],
                   ],
-                  if (tagName != null) ...[
-                    if (tagEmoji != null) Text(tagEmoji, style: const TextStyle(fontSize: 12)),
-                    const SizedBox(width: 4),
-                    Text(tagName, style: TextStyle(fontSize: 12, color: tagColor, fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 12),
-                  ],
-                  if (reminder != null) ...[
-                    Icon(Icons.notifications_active_rounded, size: 14, color: AppColors.honeyGold),
-                    const SizedBox(width: 4),
-                    Text('${reminder}m before', style: const TextStyle(fontSize: 12, color: AppColors.honeyGold)),
-                  ],
-                ],
+                ),
               ),
               if (creator != null) ...[
                 const SizedBox(height: 4),

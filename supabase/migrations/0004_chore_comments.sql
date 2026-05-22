@@ -45,11 +45,19 @@ CREATE POLICY "Household members can insert chore comments"
 
 CREATE POLICY "Comment authors can update their own comments"
   ON chore_comments FOR UPDATE
-  USING (member_id = auth.uid()::text);
+  USING (
+    member_id IN (
+      SELECT id FROM household_members WHERE auth_user_id = auth.uid()
+    )
+  );
 
 CREATE POLICY "Comment authors can delete their own comments"
   ON chore_comments FOR DELETE
-  USING (member_id = auth.uid()::text);
+  USING (
+    member_id IN (
+      SELECT id FROM household_members WHERE auth_user_id = auth.uid()
+    )
+  );
 
 -- Updated at trigger
 CREATE OR REPLACE FUNCTION update_chore_comments_updated_at()

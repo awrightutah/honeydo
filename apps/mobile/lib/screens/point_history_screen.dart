@@ -73,11 +73,11 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
   int get _myPoints => _myMembership?['points_balance'] ?? 0;
 
   int get _totalEarned => _transactions
-      .where((t) => (t['amount'] as int?) ?? 0 > 0)
+      .where((t) => ((t['amount'] as int?) ?? 0) > 0)
       .fold(0, (sum, t) => sum + ((t['amount'] as int?) ?? 0));
 
   int get _totalSpent => _transactions
-      .where((t) => (t['amount'] as int?) ?? 0 < 0)
+      .where((t) => ((t['amount'] as int?) ?? 0) < 0)
       .fold(0, (sum, t) => sum + ((t['amount'] as int?) ?? 0).abs());
 
   @override

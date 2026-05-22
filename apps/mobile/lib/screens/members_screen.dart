@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
+import 'member_profile_screen.dart';
 
 /// Screen for managing household members: adding sub-profiles (kids),
 /// inviting adults, and managing existing members.
@@ -87,7 +89,7 @@ class _MembersScreenState extends State<MembersScreen> {
       }
 
       // Generate a new code
-      final code = _generateCode();
+      final code = generateInviteCode();
       await Supabase.instance.client.from('household_invites').insert({
         'household_id': _household!['id'],
         'code': code,
@@ -109,15 +111,6 @@ class _MembersScreenState extends State<MembersScreen> {
         );
       }
     }
-  }
-
-  String _generateCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars
-    final buffer = StringBuffer();
-    for (int i = 0; i < 6; i++) {
-      buffer.write(chars[DateTime.now().microsecond % chars.length]);
-    }
-    return buffer.toString();
   }
 
   void _showAddSubProfileSheet() {
@@ -187,6 +180,10 @@ class _MembersScreenState extends State<MembersScreen> {
                   ..._members.map((member) => _MemberCard(
                         member: member,
                         isCurrentUser: member['auth_user_id'] == Supabase.instance.client.auth.currentUser?.id,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => MemberProfileScreen(memberId: member['id'])),
+                        ),
                       )),
 
                   const SizedBox(height: 24),
@@ -307,9 +304,10 @@ class _StatCard extends StatelessWidget {
 }
 
 class _MemberCard extends StatelessWidget {
-  const _MemberCard({required this.member, required this.isCurrentUser});
+  const _MemberCard({required this.member, required this.isCurrentUser, required this.onTap});
   final Map<String, dynamic> member;
   final bool isCurrentUser;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +320,7 @@ class _MemberCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onTap,
         leading: CircleAvatar(
           backgroundColor: isKid ? AppColors.honeyGold.withOpacity(.2) : AppColors.skyBlue.withOpacity(.2),
           child: Text(
@@ -421,7 +420,13 @@ class _AddSubProfileSheetState extends State<_AddSubProfileSheet> {
     setState(() => _isLoading = true);
 
     try {
-      // Hash the PIN with SHA-256 before storing
+      // SECURITY DEBT (CQ2 in audits/2026-05-pass-1a-flutter-v3.md):
+      // SHA-256 with no salt over a 4-6 digit PIN is recoverable in under
+      // one second via a complete rainbow table (key space <= 10^6). Anyone
+      // with SELECT access to `pin_hash` can recover every kid PIN.
+      // Proper fix: move verification to a server-side Postgres function
+      // using pgcrypto (`crypt(pin, gen_salt('bf'))` or scrypt) with a
+      // per-row salt, and revoke client SELECT on the `pin_hash` column.
       final bytes = utf8.encode(pin);
       final pinHash = sha256.convert(bytes).toString();
       await Supabase.instance.client.from('household_members').insert({

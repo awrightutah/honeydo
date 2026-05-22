@@ -1,0 +1,26 @@
+# NOTE: strict-casts is intentionally disabled until the repository/model
+# layer (audit finding A4 in audits/2026-05-pass-1a-flutter-v3.md) lands.
+# Supabase responses are Map<String, dynamic> everywhere, which produces
+# ~189 strict-casts errors. Re-enable once typed models replace the raw
+# maps. Other strict lints (strict-inference, strict-raw-types) stay on.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: false
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    use_build_context_synchronously: error
+    unawaited_futures: error
+    dead_code: warning
+    unused_local_variable: warning
+    unused_import: warning
+
+linter:
+  rules:
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    require_trailing_commas: false
+    avoid_print: true
+    unawaited_futures: true

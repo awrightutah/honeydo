@@ -41,7 +41,7 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
       }
 
       _membership = memberships[0];
-      _preferences = await NotificationService.loadPreferences(_membership!['id']);
+      _preferences = await NotificationService().loadPreferences();
       setState(() => _isLoading = false);
     } catch (e) {
       setState(() => _isLoading = false);
@@ -56,11 +56,7 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
   Future<void> _updatePref(String key, bool value) async {
     setState(() => _isUpdating = true);
     try {
-      await NotificationService.updatePreferences(
-        _membership!['id'],
-        _membership!['household_id'],
-        {key: value},
-      );
+      await NotificationService().updatePreferences({key: value});
       setState(() {
         _preferences?[key] = value;
         _isUpdating = false;
@@ -369,11 +365,7 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
           'quiet_hours_end': '7:00 AM',
         };
 
-        await NotificationService.updatePreferences(
-          _membership!['id'],
-          _membership!['household_id'],
-          defaults,
-        );
+        await NotificationService().updatePreferences(defaults);
 
         await _loadData();
 

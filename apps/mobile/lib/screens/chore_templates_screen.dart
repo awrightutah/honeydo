@@ -461,7 +461,7 @@ class _ChoreTemplatesScreenState extends State<ChoreTemplatesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 8, top: index > 0 ? 20 : 0),
+                          padding: EdgeInsets.only(bottom: 8, top: index > 0 ? 20 : 0),
                           child: Row(
                             children: [
                               _categoryIcon(category),
@@ -513,7 +513,7 @@ class _ChoreTemplatesScreenState extends State<ChoreTemplatesScreen> {
       'Laundry': Icons.local_laundry_service_rounded,
       'Yard': Icons.yard_rounded,
       'Garage': Icons.garage_rounded,
-      'Entryway': Icons.door_front_rounded,
+      'Entryway': Icons.door_front_door_rounded,
       'Pets': Icons.pets_rounded,
       'Household': Icons.home_rounded,
     };
