@@ -308,6 +308,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
       'in_progress' => AppColors.honeyGold,
       'pending_verification' => AppColors.grassGreen,
       'verified' => const Color(0xFF4CAF50),
+      'rejected' => AppColors.coral,
       'skipped' => Colors.grey,
       _ => Colors.grey,
     };
@@ -319,6 +320,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
       'in_progress' => Icons.pending,
       'pending_verification' => Icons.check_circle,
       'verified' => Icons.verified,
+      'rejected' => Icons.cancel_outlined,
       'skipped' => Icons.skip_next,
       _ => Icons.help,
     };
@@ -344,8 +346,11 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     }
 
     final isAdmin = Permissions.canEditAnyChore(_householdMember);
-    final isAssignedToMe = _chore?['assigned_to_member_id'] == _householdMember?['id'];
-    final canEdit = isAdmin || isAssignedToMe;
+    // Edit is admin-only per kid-permissions spec (Batch 3 Half B).
+    // Assignee-self-edit was dropped because Batch 2's chores UPDATE RLS
+    // is admin-only; the previous canEdit included the assignee path
+    // which would have failed at runtime with an RLS error.
+    final canEdit = isAdmin;
     final assignee = _chore?['household_members'];
 
     return Scaffold(
@@ -872,15 +877,43 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   Future<void> _quickUpdateStatus(String newStatus) async {
     try {
       final previousChore = _chore == null ? null : Map<String, dynamic>.from(_chore!);
-      final updates = <String, dynamic>{'status': newStatus};
-      if (newStatus == 'pending_verification' || newStatus == 'verified') {
-        updates['completed_at'] = DateTime.now().toIso8601String();
-      }
-      await Supabase.instance.client
-          .from('chores')
-          .update(updates)
-          .eq('id', widget.choreId);
 
+      if (newStatus == 'pending_verification') {
+        // Complete chip — branch on kind, same pattern as
+        // chore_dashboard._completeChore (Batch 3 Half B).
+        if (Permissions.isKid(_householdMember)) {
+          // TODO: Batch 4 — migrate kid path to submit_kid_chore_with_photo RPC.
+          await Supabase.instance.client.from('chores').update({
+            'status': 'pending_verification',
+            'completed_at': DateTime.now().toIso8601String(),
+          }).eq('id', widget.choreId);
+        } else {
+          // Adult path: auto-verifies + awards points via the RPC.
+          await Supabase.instance.client.rpc('complete_chore_self', params: {
+            'p_chore_id': widget.choreId,
+            'p_member_id': _householdMember!['id'],
+          });
+        }
+      } else if (newStatus == 'verified') {
+        // Verify chip — admin-only. approve_chore handles status update,
+        // points award (kid/adult branching server-side), achievements,
+        // and photo delete_after scheduling. Also fixes the missing-points
+        // bug noted in the baseline-merge followups for this chip.
+        await Supabase.instance.client.rpc('approve_chore', params: {
+          'p_chore_id': widget.choreId,
+          'p_approved': true,
+          'p_reason': null,
+        });
+      } else {
+        // Start / Skip / Reassign — direct UPDATE (admin-only via RLS).
+        final updates = <String, dynamic>{'status': newStatus};
+        await Supabase.instance.client
+            .from('chores')
+            .update(updates)
+            .eq('id', widget.choreId);
+      }
+
+      // Recurring chores still need next-occurrence creation app-side.
       if ((newStatus == 'pending_verification' || newStatus == 'verified') && previousChore != null) {
         await _createNextRecurringChoreIfNeeded(previousChore);
       }
@@ -893,6 +926,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
         );
       }
     } catch (e) {
+      debugPrint('quick status update failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error updating status: $e')),

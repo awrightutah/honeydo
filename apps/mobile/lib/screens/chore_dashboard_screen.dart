@@ -130,16 +130,30 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
 
   Future<void> _completeChore(String choreId) async {
     try {
-      await Supabase.instance.client.from('chores').update({
-        'status': 'pending_verification',
-        'completed_at': DateTime.now().toIso8601String(),
-      }).eq('id', choreId);
+      if (Permissions.isKid(_myMembership)) {
+        // TODO: Batch 4 — migrate kid path to submit_kid_chore_with_photo RPC.
+        // Today this direct UPDATE works because the underlying JWT is the
+        // parent adult's; RLS sees admin role and allows. Batch 4 replaces
+        // this with photo-required completion.
+        await Supabase.instance.client.from('chores').update({
+          'status': 'pending_verification',
+          'completed_at': DateTime.now().toIso8601String(),
+        }).eq('id', choreId);
+      } else {
+        // Adult path: auto-verifies (per spec Q3, no admin step for adults),
+        // points + achievements awarded immediately inside the RPC.
+        await Supabase.instance.client.rpc('complete_chore_self', params: {
+          'p_chore_id': choreId,
+          'p_member_id': _myMembership!['id'],
+        });
+      }
 
       _loadData();
     } catch (e) {
+      debugPrint('complete chore failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not mark chore as complete. Please try again.')),
+          SnackBar(content: Text('Could not mark chore as complete: $e')),
         );
       }
     }
@@ -193,70 +207,26 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
   Future<void> _verifyChore(String choreId, bool approved) async {
     try {
       final chore = _pendingVerification.firstWhere((c) => c['id'] == choreId);
-      final points = chore['point_value'] ?? 5;
 
+      // approve_chore (migration 0017) handles the status update, points
+      // award (with kid/adult branching), achievements check, and photo
+      // delete_after scheduling server-side. Reject sets status='rejected'
+      // (final — kid Re-do affordance lands in Batch 4).
+      await Supabase.instance.client.rpc('approve_chore', params: {
+        'p_chore_id': choreId,
+        'p_approved': approved,
+        'p_reason': null,  // Batch 4 adds UI for entering rejection reason
+      });
+
+      // Recurring chores still need next-occurrence creation app-side;
+      // the RPC doesn't do this.
       if (approved) {
-        // Update chore status
-        await Supabase.instance.client.from('chores').update({
-          'status': 'verified',
-          'verified_at': DateTime.now().toIso8601String(),
-          'verified_by_member_id': _myMembership!['id'],
-        }).eq('id', choreId);
-
-        // Award points to the user who completed it.
-        // Adults have a Supabase auth account (kind = 'adult_auth_user');
-        // kids are sub_profiles with auth_user_id = NULL, so for kids we
-        // call the member_id-based RPC variants (see 0011 migration).
-        final assignedMemberId = chore['assigned_to_member_id'] as String;
-        final assignedMember = await Supabase.instance.client
-            .from('household_members')
-            .select('id, kind, auth_user_id')
-            .eq('id', assignedMemberId)
-            .single();
-
-        final totalPoints = points + (chore['bonus_points'] ?? 0);
-        final isSubProfile = assignedMember['kind'] == 'sub_profile';
-
-        if (isSubProfile) {
-          await Supabase.instance.client.rpc('award_points_to_member', params: {
-            'p_member_id': assignedMember['id'],
-            'p_household_id': chore['household_id'],
-            'p_points': totalPoints,
-            'p_note': 'chore_completion',
-            'p_source_table': 'chores',
-            'p_source_id': choreId,
-          });
-          await Supabase.instance.client.rpc('check_and_award_achievements_for_member', params: {
-            'p_member_id': assignedMember['id'],
-            'p_household_id': chore['household_id'],
-          });
-        } else {
-          await Supabase.instance.client.rpc('award_points', params: {
-            'p_auth_user_id': assignedMember['auth_user_id'],
-            'p_household_id': chore['household_id'],
-            'p_points': totalPoints,
-            'p_note': 'chore_completion',
-            'p_source_table': 'chores',
-            'p_source_id': choreId,
-          });
-          await Supabase.instance.client.rpc('check_and_award_achievements', params: {
-            'p_auth_user_id': assignedMember['auth_user_id'],
-            'p_household_id': chore['household_id'],
-          });
-        }
-
-        // Create the next occurrence for recurring chores after approval.
         await _createNextRecurringChoreIfNeeded(chore);
-      } else {
-        // Reject - put chore back to assigned
-        await Supabase.instance.client.from('chores').update({
-          'status': 'assigned',
-          'completed_at': null,
-        }).eq('id', choreId);
       }
 
       _loadData();
     } catch (e) {
+      debugPrint('approve_chore failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not update chore status: $e')),
