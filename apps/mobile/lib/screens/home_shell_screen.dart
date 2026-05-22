@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
@@ -497,6 +495,20 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   }
 
   Future<void> _verifyAndSwitchToKid(Map<String, dynamic> member) async {
+    // Migration 0013 drops the old pin_hash column, so any kid created
+    // before today's migration starts with no PIN until an admin sets one.
+    // Gate the verify dialog on has_member_pin; if the PIN isn't set yet,
+    // route admins to a Set-PIN dialog and tell non-admins to ask one.
+    final hasPin = await Supabase.instance.client.rpc('has_member_pin', params: {
+      'p_member_id': member['id'],
+    }) as bool;
+    if (!mounted) return;
+
+    if (!hasPin) {
+      await _promptToSetMissingPin(member);
+      return;
+    }
+
     final pinController = TextEditingController();
     final verified = await showDialog<bool>(
       context: context,
@@ -524,15 +536,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
     if (verified != true) return;
     final pin = pinController.text.trim();
-    // SECURITY DEBT (CQ2 in audits/2026-05-pass-1a-flutter-v3.md):
-    // SHA-256 with no salt over a 4-6 digit PIN is recoverable in under
-    // one second via a complete rainbow table (key space <= 10^6). Anyone
-    // with SELECT access to `pin_hash` can recover every kid PIN.
-    // Proper fix: move verification to a server-side Postgres function
-    // using pgcrypto (`crypt(pin, gen_salt('bf'))` or scrypt) with a
-    // per-row salt, and revoke client SELECT on the `pin_hash` column.
-    final pinHash = sha256.convert(utf8.encode(pin)).toString();
-    if (pinHash != member['pin_hash']) {
+    // CQ2 resolved 2026-05-22: PIN verification runs server-side via the
+    // verify_member_pin RPC (pgcrypto bcrypt, per-row salt). The hash
+    // is never read by the client. See supabase/migrations/0013_pin_hashing_bcrypt.sql.
+    final ok = await Supabase.instance.client.rpc('verify_member_pin', params: {
+      'p_member_id': member['id'],
+      'p_pin': pin,
+    }) as bool;
+    if (!ok) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Incorrect PIN. Please try again.')),
@@ -546,6 +557,104 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Switched to ${member['display_name']}')),
       );
+    }
+  }
+
+  Future<void> _promptToSetMissingPin(Map<String, dynamic> member) async {
+    final role = _myMembership?['role'];
+    final isAdmin = role == 'owner' || role == 'admin';
+
+    if (!isAdmin) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${member['display_name']} needs a PIN. Ask an admin to set one.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final pinController = TextEditingController();
+    final confirmController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Set PIN for ${member['display_name']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: pinController,
+              autofocus: true,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                labelText: 'New PIN (4-6 digits)',
+                prefixIcon: Icon(Icons.lock_outline_rounded),
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                labelText: 'Confirm PIN',
+                prefixIcon: Icon(Icons.lock_outline_rounded),
+                counterText: '',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Set PIN')),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final newPin = pinController.text.trim();
+    final confirmPin = confirmController.text.trim();
+    if (newPin.length < 4 || newPin.length > 6 || !RegExp(r'^[0-9]+$').hasMatch(newPin)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PIN must be 4 to 6 digits.')),
+        );
+      }
+      return;
+    }
+    if (newPin != confirmPin) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PINs do not match.')),
+        );
+      }
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.rpc('set_member_pin', params: {
+        'p_member_id': member['id'],
+        'p_pin': newPin,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PIN set for ${member['display_name']}. They can switch in now.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('set_member_pin failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not set PIN: $e')),
+        );
+      }
     }
   }
 

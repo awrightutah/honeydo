@@ -168,9 +168,12 @@ class _DataExportScreenState extends State<DataExportScreen> {
             .eq('household_id', householdId);
       }
       if (_sections['Household Members']!) {
+        // Explicit column list to avoid ever exporting auth secrets.
+        // The pin_hash column was dropped by migration 0013; this list
+        // documents the policy regardless: no credentials in exports.
         data['members'] = await _supabase
             .from('household_members')
-            .select('*')
+            .select('id, household_id, kind, role, auth_user_id, display_name, avatar_url, points_balance, is_active, created_by, created_at, updated_at, current_streak, longest_streak, last_completion_date')
             .eq('household_id', householdId);
       }
       if (_sections['Rewards & Points']!) {
