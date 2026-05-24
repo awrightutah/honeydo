@@ -475,6 +475,8 @@ class _ChoreCard extends StatelessWidget {
     final difficulty = chore['difficulty'] ?? 'easy';
     final dueAt = chore['due_at'] != null ? DateTime.tryParse(chore['due_at']) : null;
     final isChoreOfDay = chore['chore_of_day_date'] != null;
+    final status = chore['status'] ?? 'assigned';
+    final isActionable = status == 'assigned' || status == 'in_progress';
 
     final difficultyColor = switch (difficulty) {
       'hard' => AppColors.coral,
@@ -491,7 +493,7 @@ class _ChoreCard extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => ChoreDetailScreen(choreId: chore['id']),
             ),
-          ).then((_) => onComplete);
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -555,18 +557,23 @@ class _ChoreCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onComplete,
-                  icon: const Icon(Icons.check_rounded, size: 18),
-                  label: const Text('Mark complete'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(40),
-                    backgroundColor: AppColors.grassGreen,
+              // Defense in depth: only render Mark complete for chores
+              // that are actually completable. Stops a stale 'verified'
+              // or 'pending_verification' chore (e.g., from a missed
+              // realtime refresh) from showing a button that would error.
+              if (isActionable)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onComplete,
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Mark complete'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                      backgroundColor: AppColors.grassGreen,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
