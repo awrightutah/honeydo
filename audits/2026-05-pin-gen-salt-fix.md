@@ -5,6 +5,8 @@ Branch: `fix/pin-hashing-pass-2-2026-05-22` (unchanged)
 Migrations touched: `supabase/migrations/0013_pin_hashing_bcrypt.sql` (amended in place), `supabase/migrations/0014_fix_gen_salt_type.sql` (new)
 Status: working tree edits, **not committed**
 
+> **See also:** /audits/supabase-patterns-learned.md for Supabase-specific patterns learned during this work.
+
 ## Root cause
 
 When `set_member_pin` was called from the iPhone, Postgres raised:

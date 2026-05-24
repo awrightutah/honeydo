@@ -6,6 +6,8 @@ Migration introduced: `supabase/migrations/0013_pin_hashing_bcrypt.sql`
 Resolves: CQ2 in `/audits/2026-05-pass-1a-flutter-v3.md`
 Status: code complete, **migration not yet applied to Supabase, branch not merged, nothing committed**
 
+> **See also:** /audits/supabase-patterns-learned.md for Supabase-specific patterns learned during this work.
+
 ## Security audit summary (before → after)
 
 | Property | Before (v0.1.0-baseline) | After (this fix) |
