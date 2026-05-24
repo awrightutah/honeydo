@@ -65,6 +65,58 @@ class ImageUploadService {
     return publicUrl;
   }
 
+  /// Pick an image and upload to a PRIVATE Supabase Storage bucket.
+  /// Returns the storage path (not a public URL — the bucket is private,
+  /// so callers must use `createSignedUrl` later when displaying the image).
+  ///
+  /// Use this for private buckets like `chore-photos`. For public buckets
+  /// (avatars, recipe images), use [pickAndUpload] instead — that helper
+  /// returns a public URL ready for `Image.network`.
+  ///
+  /// The full storage object key is `$pathPrefix/${timestamp_ms}.jpg`.
+  /// The first folder of `pathPrefix` should be the household_id so the
+  /// chore-photos bucket's RLS policy (which checks
+  /// `(storage.foldername(name))[1]`) can match.
+  ///
+  /// On RPC failure after the upload succeeded, the caller is expected
+  /// to clean up via `Supabase.instance.client.storage.from(bucketId).remove([path])`
+  /// — this method does not retain enough state to do that cleanup itself.
+  ///
+  /// Throws on upload failure (no swallow). Returns null if the user
+  /// cancelled the picker.
+  static Future<String?> pickAndUploadPrivate({
+    required String bucketId,
+    required String pathPrefix,
+    ImageSource source = ImageSource.camera,
+    int maxWidth = 1024,
+    int maxHeight = 1024,
+    int imageQuality = 80,
+  }) async {
+    final XFile? image = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: maxWidth.toDouble(),
+      maxHeight: maxHeight.toDouble(),
+      imageQuality: imageQuality,
+    );
+
+    if (image == null) return null; // User cancelled
+
+    final bytes = await image.readAsBytes();
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final storagePath = '$pathPrefix/$fileName';
+
+    await _supabase.storage.from(bucketId).uploadBinary(
+      storagePath,
+      bytes,
+      fileOptions: const FileOptions(
+        contentType: 'image/jpeg',
+        upsert: false,
+      ),
+    );
+
+    return storagePath;
+  }
+
   /// Upload an avatar image for the current user.
   /// Returns the public URL of the uploaded avatar.
   static Future<String?> uploadAvatar({ImageSource source = ImageSource.gallery}) async {
@@ -99,6 +151,47 @@ class ImageUploadService {
     required String filePath,
   }) async {
     await _supabase.storage.from(bucketId).remove([filePath]);
+  }
+
+  /// Show a 3-button modal asking the user to choose between taking a photo,
+  /// skipping the photo, or cancelling entirely. Used by the kid chore-
+  /// completion flow (Batch 4a revised) where photo evidence is optional.
+  ///
+  /// Returns:
+  ///   'photo' — user wants to take a photo
+  ///   'skip'  — user wants to submit without a photo
+  ///   null    — user cancelled (no submission should occur)
+  ///
+  /// Symmetric tap counts: 2 to photo (this dialog + camera), 2 to skip
+  /// (this dialog + nothing else), 1 to cancel.
+  static Future<String?> showPhotoChoiceDialog(
+    BuildContext context, {
+    String title = 'Submit chore as complete?',
+  }) async {
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: const Text('Would you like to include a photo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'photo'),
+            child: const Text(
+              '📷  Take Photo',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'skip'),
+            child: const Text('✏️  Skip Photo'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Show image source picker dialog (gallery vs camera).

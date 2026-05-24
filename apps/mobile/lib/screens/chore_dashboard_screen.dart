@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
+import '../services/image_upload_service.dart';
 import '../utils/permissions.dart';
 import 'chore_detail_screen.dart';
 
@@ -131,14 +133,64 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
   Future<void> _completeChore(String choreId) async {
     try {
       if (Permissions.isKid(_myMembership)) {
-        // TODO: Batch 4 — migrate kid path to submit_kid_chore_with_photo RPC.
-        // Today this direct UPDATE works because the underlying JWT is the
-        // parent adult's; RLS sees admin role and allows. Batch 4 replaces
-        // this with photo-required completion.
-        await Supabase.instance.client.from('chores').update({
-          'status': 'pending_verification',
-          'completed_at': DateTime.now().toIso8601String(),
-        }).eq('id', choreId);
+        // Kid path: ask Take Photo / Skip Photo / Cancel, then route to
+        // submit_kid_chore_with_photo RPC with a nullable storage path.
+        // Migration 0019 made p_storage_path optional; the photo INSERT
+        // only happens when v_has_photo is true server-side. On RPC failure
+        // after a photo upload, the just-uploaded Storage object is removed
+        // so we don't leave orphans.
+        final chore = _myChores.firstWhere(
+          (c) => c['id'] == choreId,
+          orElse: () => <String, dynamic>{},
+        );
+        if (chore.isEmpty) {
+          throw Exception('Chore not found in local cache');
+        }
+        final householdId = chore['household_id'];
+        final memberId = _myMembership!['id'];
+
+        // 1. Ask: Take Photo / Skip Photo / Cancel
+        final choice = await ImageUploadService.showPhotoChoiceDialog(context);
+        if (choice == null) {
+          // User cancelled — no submission.
+          return;
+        }
+
+        // 2. If Take Photo, open camera + upload. If Skip, leave path null.
+        String? storagePath;
+        if (choice == 'photo') {
+          storagePath = await ImageUploadService.pickAndUploadPrivate(
+            bucketId: 'chore-photos',
+            pathPrefix: '$householdId/$choreId',
+            source: ImageSource.camera,
+          );
+          if (storagePath == null) {
+            // User cancelled the camera after choosing Take Photo; bail.
+            // They'll need to re-tap Mark complete to make another choice.
+            return;
+          }
+        }
+
+        // 3. Submit the chore; RPC handles the null path natively (0019).
+        try {
+          await Supabase.instance.client.rpc('submit_kid_chore_with_photo', params: {
+            'p_chore_id': choreId,
+            'p_member_id': memberId,
+            'p_storage_path': storagePath,
+          });
+        } catch (rpcError) {
+          // RPC rejected — if we uploaded a photo, clean it up.
+          if (storagePath != null) {
+            try {
+              await Supabase.instance.client.storage
+                  .from('chore-photos')
+                  .remove([storagePath]);
+            } catch (cleanupError) {
+              debugPrint('storage cleanup failed (continuing): $cleanupError');
+            }
+          }
+          rethrow;
+        }
       } else {
         // Adult path: auto-verifies (per spec Q3, no admin step for adults),
         // points + achievements awarded immediately inside the RPC.

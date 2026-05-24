@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
+import '../services/image_upload_service.dart';
 import '../utils/permissions.dart';
 
 /// Chore detail screen for viewing, editing, and managing individual chores.
@@ -880,13 +882,58 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
 
       if (newStatus == 'pending_verification') {
         // Complete chip — branch on kind, same pattern as
-        // chore_dashboard._completeChore (Batch 3 Half B).
+        // chore_dashboard._completeChore.
         if (Permissions.isKid(_householdMember)) {
-          // TODO: Batch 4 — migrate kid path to submit_kid_chore_with_photo RPC.
-          await Supabase.instance.client.from('chores').update({
-            'status': 'pending_verification',
-            'completed_at': DateTime.now().toIso8601String(),
-          }).eq('id', widget.choreId);
+          // Kid path: ask Take Photo / Skip Photo / Cancel, then route to
+          // submit_kid_chore_with_photo RPC with a nullable storage path
+          // (migration 0019). Same flow as chore_dashboard._completeChore.
+          if (_chore == null) {
+            throw Exception('Chore not loaded');
+          }
+          final householdId = _chore!['household_id'];
+          final memberId = _householdMember!['id'];
+
+          // 1. Ask: Take Photo / Skip Photo / Cancel
+          final choice = await ImageUploadService.showPhotoChoiceDialog(context);
+          if (choice == null) {
+            // User cancelled — no submission.
+            return;
+          }
+
+          // 2. If Take Photo, open camera + upload. If Skip, leave path null.
+          String? storagePath;
+          if (choice == 'photo') {
+            storagePath = await ImageUploadService.pickAndUploadPrivate(
+              bucketId: 'chore-photos',
+              pathPrefix: '$householdId/${widget.choreId}',
+              source: ImageSource.camera,
+            );
+            if (storagePath == null) {
+              // User cancelled the camera after choosing Take Photo; bail.
+              return;
+            }
+          }
+
+          // 3. Submit the chore; RPC handles the null path natively (0019).
+          try {
+            await Supabase.instance.client.rpc('submit_kid_chore_with_photo', params: {
+              'p_chore_id': widget.choreId,
+              'p_member_id': memberId,
+              'p_storage_path': storagePath,
+            });
+          } catch (rpcError) {
+            // If we uploaded a photo, clean it up.
+            if (storagePath != null) {
+              try {
+                await Supabase.instance.client.storage
+                    .from('chore-photos')
+                    .remove([storagePath]);
+              } catch (cleanupError) {
+                debugPrint('storage cleanup failed (continuing): $cleanupError');
+              }
+            }
+            rethrow;
+          }
         } else {
           // Adult path: auto-verifies + awards points via the RPC.
           await Supabase.instance.client.rpc('complete_chore_self', params: {
