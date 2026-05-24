@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Honeydo uses your camera to let kids submit photos when completing chores, and to take photos for profile avatars and recipes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Honeydo uses your photo library to upload images for chore submissions, profile avatars, and recipes.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
