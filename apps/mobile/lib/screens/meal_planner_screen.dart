@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
 import 'recipe_detail_screen.dart';
 
 /// Full meal planner screen with 7-day week view, meal type selection,
@@ -37,11 +39,13 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
     super.initState();
     _loadData();
     RealtimeService.instance.mealPlansVersion.addListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
     RealtimeService.instance.mealPlansVersion.removeListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     super.dispose();
   }
 
@@ -49,24 +53,25 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
     if (mounted) _loadData();
   }
 
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      if (memberships.isEmpty) {
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
 
       // Load recipes and members in parallel

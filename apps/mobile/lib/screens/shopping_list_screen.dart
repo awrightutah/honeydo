@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
 import 'shopping_category_screen.dart';
 
 const List<String> _shoppingCategories = [
@@ -85,11 +87,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
     super.initState();
     _loadData();
     RealtimeService.instance.shoppingVersion.addListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
     RealtimeService.instance.shoppingVersion.removeListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     super.dispose();
   }
 
@@ -97,24 +101,30 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
     if (mounted) _loadData();
   }
 
+  // Reload when the profile switcher changes the active member so the
+  // is_wishlist-routing and add_shopping_item member-id reflect the new
+  // member context immediately.
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
+      // Resolves to the active kid's row when one is selected via the
+      // profile switcher, otherwise the JWT holder's adult row.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      if (memberships.isEmpty) {
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
 
       final results = await Future.wait([

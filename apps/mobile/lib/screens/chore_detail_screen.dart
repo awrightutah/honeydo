@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../services/image_upload_service.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 import '../widgets/chore_photo_viewer.dart';
 
@@ -61,35 +63,41 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
+    ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     _titleController.dispose();
     _descriptionController.dispose();
     _pointsController.dispose();
     super.dispose();
   }
 
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
+      // Resolves to the active kid's row when one is selected via the
+      // profile switcher, otherwise the JWT holder's adult row. The kid
+      // path through Quick Actions (Re-do, Complete) depends on
+      // Permissions.isKid(_householdMember) which only returns true when
+      // the kid's row is loaded — not the parent's via auth.uid().
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      // Load current membership
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _householdMember = memberships[0];
+      _householdMember = membership;
       final householdId = _householdMember!['household_id'];
 
       // Load chore details
