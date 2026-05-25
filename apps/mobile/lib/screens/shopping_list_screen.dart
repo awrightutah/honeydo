@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
 import '../utils/membership.dart';
+import '../utils/permissions.dart';
 import 'shopping_category_screen.dart';
 
 const List<String> _shoppingCategories = [
@@ -41,6 +42,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
   List<Map<String, dynamic>> _shoppingItems = [];
   List<Map<String, dynamic>> _stores = [];
   List<Map<String, dynamic>> _householdRecipes = [];
+  // Lowercased necessity-category names for this household — used by the
+  // Batch 5a kid wishlist flow to decide which SnackBar copy to show after
+  // an add (necessity → "Added to shopping list"; otherwise → "wishlist").
+  List<String> _necessityCategoriesLower = [];
   bool _isLoading = true;
   bool _groupByCategory = true;
 
@@ -143,11 +148,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
             .select('id, title, ingredients')
             .eq('household_id', householdId)
             .order('title'),
+        Supabase.instance.client
+            .from('necessity_categories')
+            .select('category')
+            .eq('household_id', householdId),
       ]);
 
       _shoppingLists = List<Map<String, dynamic>>.from(results[0]);
       _stores = List<Map<String, dynamic>>.from(results[1]);
       _householdRecipes = List<Map<String, dynamic>>.from(results[2]);
+      _necessityCategoriesLower = (results[3] as List)
+          .map((row) => (row['category'] as String).toLowerCase())
+          .toList(growable: false);
 
       if (_shoppingLists.isNotEmpty) {
         _activeListId = _shoppingLists.first['id'];
@@ -191,6 +203,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
           .from('shopping_items')
           .select('*, store:stores(name)')
           .eq('shopping_list_id', _activeListId!)
+          .eq('is_wishlist', false)
           .order('purchased', ascending: true)
           .order('sort_order');
 
@@ -211,6 +224,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
         householdId: _household!['id'],
         shoppingListId: _activeListId!,
         myMemberId: _myMembership!['id'],
+        isKid: Permissions.isKid(_myMembership),
+        necessityCategoriesLower: _necessityCategoriesLower,
         stores: _stores,
       ),
     ).then((_) => _loadShoppingItems());
@@ -224,6 +239,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
         householdId: _household!['id'],
         shoppingListId: _activeListId!,
         myMemberId: _myMembership!['id'],
+        isKid: Permissions.isKid(_myMembership),
         recipes: _householdRecipes,
       ),
     ).then((_) => _loadShoppingItems());
@@ -761,12 +777,21 @@ class _AddShoppingItemSheet extends StatefulWidget {
     required this.householdId,
     required this.shoppingListId,
     required this.myMemberId,
+    required this.isKid,
+    required this.necessityCategoriesLower,
     required this.stores,
   });
 
   final String householdId;
   final String shoppingListId;
   final String myMemberId;
+  // Batch 5a — when true, item insert routes through add_shopping_item RPC
+  // (server sets is_wishlist based on whether category is a necessity).
+  final bool isKid;
+  // Lowercased necessity-category names for the household; used purely to
+  // pick the right SnackBar copy after a successful kid add. Server is the
+  // source of truth for the actual is_wishlist decision.
+  final List<String> necessityCategoriesLower;
   final List<Map<String, dynamic>> stores;
 
   @override
@@ -811,25 +836,59 @@ class _AddShoppingItemSheetState extends State<_AddShoppingItemSheet> {
       final quantity = _quantityController.text.trim();
       final unit = _unitController.text.trim();
       final displayQuantity = quantity.isEmpty ? null : (unit.isEmpty ? quantity : '$quantity $unit');
+      final parsedQuantity = double.tryParse(quantity);
 
-      await Supabase.instance.client.from('shopping_items').insert({
-        'household_id': widget.householdId,
-        'shopping_list_id': widget.shoppingListId,
-        'name': name,
-        'quantity': double.tryParse(quantity),
-        'unit': unit.isEmpty ? null : unit,
-        'display_quantity': displayQuantity,
-        'store_id': _selectedStoreId,
-        'category': _selectedCategory,
-        'purchased': false,
-        'added_by_member_id': widget.myMemberId,
-      });
+      if (widget.isKid) {
+        // Kid path: route through add_shopping_item RPC. Server applies the
+        // kid+necessity-category logic and sets is_wishlist accordingly.
+        await Supabase.instance.client.rpc('add_shopping_item', params: {
+          'p_household_id': widget.householdId,
+          'p_member_id': widget.myMemberId,
+          'p_name': name,
+          'p_quantity': parsedQuantity,
+          'p_unit': unit.isEmpty ? null : unit,
+          'p_category': _selectedCategory,
+          'p_store_id': _selectedStoreId,
+          'p_shopping_list_id': widget.shoppingListId,
+          'p_display_quantity': displayQuantity,
+          // p_source_recipe_id / p_source_meal_plan_id: null (manual add).
+        });
 
-      if (mounted) Navigator.pop(context);
+        if (mounted) {
+          final isNecessity = _selectedCategory != null &&
+              widget.necessityCategoriesLower
+                  .contains(_selectedCategory!.toLowerCase());
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isNecessity
+                  ? 'Added to shopping list'
+                  : 'Added to wishlist — waiting for approval'),
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Adult path: direct INSERT preserves all existing column writes.
+        await Supabase.instance.client.from('shopping_items').insert({
+          'household_id': widget.householdId,
+          'shopping_list_id': widget.shoppingListId,
+          'name': name,
+          'quantity': parsedQuantity,
+          'unit': unit.isEmpty ? null : unit,
+          'display_quantity': displayQuantity,
+          'store_id': _selectedStoreId,
+          'category': _selectedCategory,
+          'purchased': false,
+          'added_by_member_id': widget.myMemberId,
+        });
+
+        if (mounted) Navigator.pop(context);
+      }
     } catch (e) {
+      debugPrint('add shopping item failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not add item. Please try again.')),
+          SnackBar(content: Text('Could not add item: $e')),
         );
       }
     } finally {
@@ -954,12 +1013,17 @@ class _AddFromRecipeSheet extends StatefulWidget {
     required this.householdId,
     required this.shoppingListId,
     required this.myMemberId,
+    required this.isKid,
     required this.recipes,
   });
 
   final String householdId;
   final String shoppingListId;
   final String myMemberId;
+  // Batch 5a — when true, ingredient inserts route through add_shopping_item
+  // RPC (one round-trip per ingredient). Recipe ingredients have no per-item
+  // category metadata, so kid inserts always land in wishlist.
+  final bool isKid;
   final List<Map<String, dynamic>> recipes;
 
   @override
@@ -1078,23 +1142,51 @@ class _AddFromRecipeSheetState extends State<_AddFromRecipeSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final inserts = _selectedIngredients.map((ing) => {
-        'household_id': widget.householdId,
-        'shopping_list_id': widget.shoppingListId,
-        'name': ing,
-        'display_quantity': null,
-        'purchased': false,
-        'source_recipe_id': _selectedRecipeId,
-        'added_by_member_id': widget.myMemberId,
-      }).toList();
+      if (widget.isKid) {
+        // Kid path: N RPC calls (one per ingredient). add_shopping_item
+        // accepts source_recipe_id as of migration 0021 (Gap 1 fix).
+        // No per-ingredient category → all land in wishlist server-side.
+        for (final ing in _selectedIngredients) {
+          await Supabase.instance.client.rpc('add_shopping_item', params: {
+            'p_household_id': widget.householdId,
+            'p_member_id': widget.myMemberId,
+            'p_name': ing,
+            'p_shopping_list_id': widget.shoppingListId,
+            'p_source_recipe_id': _selectedRecipeId,
+          });
+        }
 
-      await Supabase.instance.client.from('shopping_items').insert(inserts);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Added ${_selectedIngredients.length} item${_selectedIngredients.length == 1 ? '' : 's'} to wishlist — waiting for approval',
+              ),
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Adult path: bulk INSERT preserves the original behavior.
+        final inserts = _selectedIngredients.map((ing) => {
+          'household_id': widget.householdId,
+          'shopping_list_id': widget.shoppingListId,
+          'name': ing,
+          'display_quantity': null,
+          'purchased': false,
+          'source_recipe_id': _selectedRecipeId,
+          'added_by_member_id': widget.myMemberId,
+        }).toList();
 
-      if (mounted) Navigator.pop(context);
+        await Supabase.instance.client.from('shopping_items').insert(inserts);
+
+        if (mounted) Navigator.pop(context);
+      }
     } catch (e) {
+      debugPrint('add ingredients failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not add ingredients. Please try again.')),
+          SnackBar(content: Text('Could not add ingredients: $e')),
         );
       }
     } finally {

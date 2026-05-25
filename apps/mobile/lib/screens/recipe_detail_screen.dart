@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../services/image_upload_service.dart';
 import '../services/active_member_service.dart';
 import '../utils/membership.dart';
+import '../utils/permissions.dart';
 
 /// Full recipe detail screen with viewing, editing, and sharing capabilities.
 class RecipeDetailScreen extends StatefulWidget {
@@ -262,28 +263,54 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (confirmed == true && selectedListId != null) {
       try {
         final ingredients = _recipe?['ingredients'] as List<dynamic>? ?? [];
+        final isKid = Permissions.isKid(_householdMember);
+
         for (final ing in ingredients) {
           final ingMap = ing is Map ? ing : {'raw': ing.toString()};
           final rawQuantity = ingMap['quantity'];
           final parsedQuantity = rawQuantity is num
               ? rawQuantity
               : num.tryParse(rawQuantity?.toString() ?? '');
-          await Supabase.instance.client.from('shopping_items').insert({
-            'household_id': _householdMember!['household_id'],
-            'shopping_list_id': selectedListId,
-            'name': ingMap['raw'] ?? ingMap['name'] ?? ing.toString(),
-            'quantity': parsedQuantity,
-            'display_quantity': ingMap['raw']?.toString(),
-            'purchased': false,
-          });
+          final name =
+              (ingMap['raw'] ?? ingMap['name'] ?? ing.toString()).toString();
+          final displayQuantity = ingMap['raw']?.toString();
+
+          if (isKid) {
+            // Kid path: add_shopping_item RPC. No per-ingredient category
+            // → kid inserts land in wishlist server-side.
+            await Supabase.instance.client.rpc('add_shopping_item', params: {
+              'p_household_id': _householdMember!['household_id'],
+              'p_member_id': _householdMember!['id'],
+              'p_name': name,
+              'p_quantity': parsedQuantity,
+              'p_shopping_list_id': selectedListId,
+              'p_source_recipe_id': widget.recipeId,
+              'p_display_quantity': displayQuantity,
+            });
+          } else {
+            // Adult path: direct INSERT, unchanged.
+            await Supabase.instance.client.from('shopping_items').insert({
+              'household_id': _householdMember!['household_id'],
+              'shopping_list_id': selectedListId,
+              'name': name,
+              'quantity': parsedQuantity,
+              'display_quantity': displayQuantity,
+              'purchased': false,
+            });
+          }
         }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Added ${ingredients.length} ingredients to shopping list!')),
+            SnackBar(
+              content: Text(isKid
+                  ? 'Added ${ingredients.length} ingredient${ingredients.length == 1 ? '' : 's'} to wishlist — waiting for approval'
+                  : 'Added ${ingredients.length} ingredients to shopping list!'),
+            ),
           );
         }
       } catch (e) {
+        debugPrint('add recipe ingredients to shopping list failed: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error adding to shopping list: $e')),

@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
 import '../utils/membership.dart';
+import '../utils/permissions.dart';
 import 'recipe_detail_screen.dart';
 
 /// Full meal planner screen with 7-day week view, meal type selection,
@@ -140,6 +141,7 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
       builder: (context) => _AddMealPlanSheet(
         householdId: _household!['id'],
         myMemberId: _myMembership!['id'],
+        isKid: Permissions.isKid(_myMembership),
         day: day,
         preselectedMealType: mealType,
         recipes: _householdRecipes,
@@ -594,6 +596,7 @@ class _AddMealPlanSheet extends StatefulWidget {
   const _AddMealPlanSheet({
     required this.householdId,
     required this.myMemberId,
+    required this.isKid,
     required this.day,
     this.preselectedMealType,
     required this.recipes,
@@ -602,6 +605,10 @@ class _AddMealPlanSheet extends StatefulWidget {
 
   final String householdId;
   final String myMemberId;
+  // Batch 5a — meal planning is admin-territory in practice, but if a kid
+  // reaches this sheet (no kind gate yet — Batch 7 hardening) the
+  // auto-ingredient-add at the end routes through add_shopping_item RPC.
+  final bool isKid;
   final DateTime day;
   final String? preselectedMealType;
   final List<Map<String, dynamic>> recipes;
@@ -701,23 +708,52 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
             }
 
             final mealPlanId = mealPlanResult['id'];
-            final inserts = ingredients.map((ing) {
-              final text = ing is String ? ing : (ing['raw']?.toString() ?? ing.toString());
-              return {
-                'household_id': widget.householdId,
-                'shopping_list_id': shoppingListId,
-                'name': text,
-                'purchased': false,
-                'source_recipe_id': _selectedRecipeId,
-                'source_meal_plan_id': mealPlanId,
-                'added_by_member_id': widget.myMemberId,
-              };
-            }).toList();
 
-            await Supabase.instance.client.from('shopping_items').insert(inserts);
+            if (widget.isKid) {
+              // Kid path: N RPC calls — add_shopping_item accepts both
+              // source_recipe_id and source_meal_plan_id as of migration 0021.
+              // No per-ingredient category metadata → all land in wishlist.
+              for (final ing in ingredients) {
+                final text = ing is String
+                    ? ing
+                    : (ing['raw']?.toString() ?? ing.toString());
+                await Supabase.instance.client.rpc('add_shopping_item', params: {
+                  'p_household_id': widget.householdId,
+                  'p_member_id': widget.myMemberId,
+                  'p_name': text,
+                  'p_shopping_list_id': shoppingListId,
+                  'p_source_recipe_id': _selectedRecipeId,
+                  'p_source_meal_plan_id': mealPlanId,
+                });
+              }
+            } else {
+              // Adult path: bulk INSERT preserves the original behavior.
+              final inserts = ingredients.map((ing) {
+                final text = ing is String ? ing : (ing['raw']?.toString() ?? ing.toString());
+                return {
+                  'household_id': widget.householdId,
+                  'shopping_list_id': shoppingListId,
+                  'name': text,
+                  'purchased': false,
+                  'source_recipe_id': _selectedRecipeId,
+                  'source_meal_plan_id': mealPlanId,
+                  'added_by_member_id': widget.myMemberId,
+                };
+              }).toList();
+
+              await Supabase.instance.client.from('shopping_items').insert(inserts);
+            }
           }
-        } catch (_) {
-          // Non-critical: ingredients failed to add, but meal plan was created
+        } catch (e) {
+          // Meal plan is already saved by this point — partial failure is
+          // recoverable; just surface it to the user so kid wishlist adds
+          // aren't silently swallowed (per Pass 2 lesson).
+          debugPrint('auto-add ingredients failed: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Meal plan saved, but ingredients failed: $e')),
+            );
+          }
         }
       }
 
