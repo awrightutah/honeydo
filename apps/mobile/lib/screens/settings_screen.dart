@@ -9,6 +9,7 @@ import 'subscription_screen.dart';
 import 'feedback_screen.dart';
 import 'notification_preferences_screen.dart';
 import 'data_export_screen.dart';
+import 'necessity_categories_screen.dart';
 
 /// Settings screen for profile, household, and app configuration.
 class SettingsScreen extends StatefulWidget {
@@ -490,6 +491,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: isAdmin ? const Icon(Icons.edit) : null,
             onTap: isAdmin ? _showEditHouseholdSheet : null,
           ),
+          // Batch 5b-ii — admin-only entry to manage necessity categories
+          // (the case-insensitive bypass list for kid wishlist routing).
+          if (Permissions.canManageNecessityCategories(_myMembership))
+            ListTile(
+              leading: const Icon(Icons.category_outlined),
+              title: const Text('Necessity Categories'),
+              subtitle: const Text('Kids can add to these without admin approval'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NecessityCategoriesScreen()),
+              ),
+            ),
 
           // Notification preferences
           _buildSectionHeader('Notifications'),
