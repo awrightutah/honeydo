@@ -7,6 +7,7 @@ import '../services/active_member_service.dart';
 import '../utils/membership.dart';
 import '../utils/permissions.dart';
 import '../widgets/chore_photo_viewer.dart';
+import '../widgets/reject_reason_dialog.dart';
 
 /// Chore detail screen for viewing, editing, and managing individual chores.
 class ChoreDetailScreen extends StatefulWidget {
@@ -1042,11 +1043,12 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
     }
   }
 
-  /// Batch 4b — Reject entry point from chore_detail. Opens the same reason
-  /// dialog used in the dashboard then calls approve_chore with p_approved=false.
+  /// Batch 4b — Reject entry point from chore_detail. Uses the shared
+  /// showRejectReasonDialog util (widgets/reject_reason_dialog.dart) since
+  /// Batch 5b-i — previously had its own inline copy.
   Future<void> _rejectFromDetail() async {
     try {
-      final reason = await _showRejectReasonDialog(
+      final reason = await showRejectReasonDialog(
           context, _chore?['title'] ?? 'this chore');
       if (reason == null) return; // cancelled
 
@@ -1065,48 +1067,6 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
         );
       }
     }
-  }
-
-  /// Reject reason dialog, duplicated from chore_dashboard. Returns the reason
-  /// (possibly empty) or null if cancelled. Caller converts '' → null.
-  Future<String?> _showRejectReasonDialog(
-      BuildContext context, String choreName) async {
-    final controller = TextEditingController();
-    return showDialog<String?>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Reject "$choreName"?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Tell them why (optional):'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              maxLines: 3,
-              maxLength: 500,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'e.g. Try again — room still has clothes on the floor',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
-            child: const Text('Reject'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _quickUpdateStatus(String newStatus) async {

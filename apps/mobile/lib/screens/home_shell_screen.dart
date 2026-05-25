@@ -25,6 +25,7 @@ import 'invite_management_screen.dart';
 import 'announcements_screen.dart';
 import 'member_profile_screen.dart';
 import 'data_export_screen.dart';
+import 'approvals_screen.dart';
 import '../services/feature_tour_service.dart';
 import '../widgets/offline_banner.dart';
 
@@ -43,6 +44,10 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   Map<String, dynamic>? _pinnedAnnouncement;
   List<Map<String, dynamic>> _householdMembers = [];
   bool _showTour = false;
+  // Batch 5b-i — AppBar inbox badge count: sum of pending_verification
+  // chores + is_wishlist=true shopping_items in the household. Updated on
+  // load + on chores/shopping realtime ticks + after Approvals screen pops.
+  int _pendingTotal = 0;
 
   final List<Widget> _screens = const [
     ChoreDashboardScreen(),
@@ -60,6 +65,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     RealtimeService.instance.pointsVersion.addListener(_onPointsChanged);
     // Listen for announcement changes to refresh the banner
     RealtimeService.instance.announcementsVersion.addListener(_onAnnouncementChanged);
+    // Batch 5b-i — chores/shopping ticks refresh the Approvals badge count.
+    RealtimeService.instance.choresVersion.addListener(_onApprovalsSourceChanged);
+    RealtimeService.instance.shoppingVersion.addListener(_onApprovalsSourceChanged);
     ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
@@ -67,6 +75,8 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   void dispose() {
     RealtimeService.instance.pointsVersion.removeListener(_onPointsChanged);
     RealtimeService.instance.announcementsVersion.removeListener(_onAnnouncementChanged);
+    RealtimeService.instance.choresVersion.removeListener(_onApprovalsSourceChanged);
+    RealtimeService.instance.shoppingVersion.removeListener(_onApprovalsSourceChanged);
     ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     super.dispose();
   }
@@ -84,6 +94,46 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
   void _onActiveMemberChanged() {
     if (mounted) _loadHouseholdInfo();
+  }
+
+  /// Realtime tick from chores OR shopping_items → refresh the Approvals
+  /// badge count. Lightweight: only the count query, no full reload.
+  void _onApprovalsSourceChanged() {
+    if (mounted) _loadPendingTotal();
+  }
+
+  /// Recomputes _pendingTotal from two count queries. No-op for non-admins.
+  Future<void> _loadPendingTotal() async {
+    if (_household == null) return;
+    if (!Permissions.isAdmin(_myMembership)) {
+      if (mounted && _pendingTotal != 0) {
+        setState(() => _pendingTotal = 0);
+      }
+      return;
+    }
+    try {
+      final householdId = _household!['id'];
+      // Two parallel id-only queries. At current scale (~few items) this is
+      // cheap; switch to `.count()` syntax later if volume grows.
+      final results = await Future.wait([
+        Supabase.instance.client
+            .from('chores')
+            .select('id')
+            .eq('household_id', householdId)
+            .eq('status', 'pending_verification'),
+        Supabase.instance.client
+            .from('shopping_items')
+            .select('id')
+            .eq('household_id', householdId)
+            .eq('is_wishlist', true),
+      ]);
+      final total =
+          (results[0] as List).length + (results[1] as List).length;
+      if (mounted) setState(() => _pendingTotal = total);
+    } catch (e) {
+      debugPrint('load pending total failed: $e');
+      // Keep last-known count; don't disturb the badge on transient errors.
+    }
   }
 
   Future<void> _loadHouseholdInfo() async {
@@ -119,6 +169,9 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
         // Subscribe to realtime updates for this household
         RealtimeService.instance.subscribe(_household!['id']);
+
+        // Batch 5b-i — refresh the AppBar inbox badge count.
+        await _loadPendingTotal();
 
         // Load pinned announcement
         try {
@@ -270,11 +323,32 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                   onPressed: () => _navigateToSearch(),
                   tooltip: 'Search',
                 ),
-                IconButton(
-                  icon: const Icon(Icons.people_outline_rounded),
-                  onPressed: () => _navigateToMembers(),
-                  tooltip: 'Household members',
-                ),
+                // Batch 5b-i — Approvals inbox icon with badge. Admin-only;
+                // Members IconButton was removed from here to free the slot
+                // (Members remains reachable from the popup menu and from
+                // Settings → Household).
+                if (Permissions.isAdmin(_myMembership))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Badge.count(
+                      count: _pendingTotal,
+                      isLabelVisible: _pendingTotal > 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.inbox_rounded),
+                        tooltip: 'Approvals',
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ApprovalsScreen(),
+                            ),
+                          );
+                          // Refresh badge on return — approve/deny actions
+                          // would have changed counts.
+                          if (mounted) await _loadPendingTotal();
+                        },
+                      ),
+                    ),
+                  ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_horiz_rounded),
                   onSelected: _handleMenuAction,
