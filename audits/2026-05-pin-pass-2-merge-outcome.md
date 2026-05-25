@@ -5,6 +5,8 @@ Tag: `v0.2.0-pin-security` (live on `origin`)
 Merge commit: `297838a05eb31a1b980571dee1ad5848466a6932` (`297838a`)
 Repository: `awrightutah/honeydo`
 
+> **See also:** /audits/supabase-patterns-learned.md for Supabase-specific patterns learned during this work.
+
 ## Summary
 
 Pass 2 (security) consolidated onto `main` and tagged as `v0.2.0-pin-security`. The merged branch (`fix/pin-hashing-pass-2-2026-05-22`) brought three commits covering: the initial PIN bcrypt RPC batch, the hotfix chain (gen_salt type cast, pgcrypto schema qualification, error-surfacing in catch blocks, four diagnostic audits), and the kid-permissions planning batch (investigation report + spec resolution with 11 decisions and an 8-batch plan).
