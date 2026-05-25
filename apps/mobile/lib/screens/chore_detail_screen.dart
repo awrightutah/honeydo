@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../services/image_upload_service.dart';
 import '../utils/permissions.dart';
+import '../widgets/chore_photo_viewer.dart';
 
 /// Chore detail screen for viewing, editing, and managing individual chores.
 class ChoreDetailScreen extends StatefulWidget {
@@ -21,6 +22,9 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
   List<Map<String, dynamic>> _assignees = [];
   List<Map<String, dynamic>> _activityLog = [];
   List<Map<String, dynamic>> _comments = [];
+  // Most-recent chore_verification_photos row for this chore (Batch 4b).
+  // Null = none yet (kid hasn't submitted) OR kid skipped the photo.
+  Map<String, dynamic>? _latestPhoto;
   bool _isLoading = true;
   bool _isEditing = false;
   bool _isSendingComment = false;
@@ -151,6 +155,23 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
             .limit(50);
       } catch (_) {
         _comments = [];
+      }
+
+      // Most-recent chore_verification_photos row for this chore (4b).
+      // Q7: show only most-recent. After a Re-do cycle, prior photos still
+      // exist with delete_after set 30 days out by approve_chore.
+      try {
+        final photoRows = await Supabase.instance.client
+            .from('chore_verification_photos')
+            .select()
+            .eq('chore_id', widget.choreId)
+            .order('created_at', ascending: false)
+            .limit(1);
+        _latestPhoto = photoRows.isNotEmpty
+            ? Map<String, dynamic>.from(photoRows.first)
+            : null;
+      } catch (_) {
+        _latestPhoto = null;
       }
 
       setState(() => _isLoading = false);
@@ -487,6 +508,80 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
             const SizedBox(height: 24),
           ],
 
+          // Submitted photo (Batch 4b). Visible once the chore has been
+          // submitted by the kid — pending_verification, verified, or
+          // rejected. 4a's "Skip Photo" path leaves _latestPhoto null;
+          // ChorePhotoThumbnail renders an empty state in that case.
+          if (status == 'pending_verification' ||
+              status == 'verified' ||
+              status == 'rejected') ...[
+            const Text('Submitted photo',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            Center(
+              child: ChorePhotoThumbnail(
+                storagePath: _latestPhoto?['storage_path'] as String?,
+                photoId: _latestPhoto?['id'] as String?,
+                canDelete: isAdmin,
+                onDeleted: () {
+                  // Photo gone → reflect locally + reload (status unchanged
+                  // per Q11; thumbnail will render the empty state).
+                  setState(() => _latestPhoto = null);
+                  _loadData();
+                },
+                size: 200,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Rejection callout (Batch 4b). Visible only when rejected; shows
+          // the admin's reason in full alongside the Re-do entry point.
+          if (status == 'rejected') ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.coral.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.coral.withOpacity(0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.cancel_outlined,
+                          size: 18, color: AppColors.coral),
+                      const SizedBox(width: 6),
+                      Text('Rejected',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.coral)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    (_chore?['rejected_reason'] as String?)?.isNotEmpty == true
+                        ? _chore!['rejected_reason']
+                        : 'No reason provided',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade800,
+                      fontStyle:
+                          (_chore?['rejected_reason'] as String?)?.isNotEmpty ==
+                                  true
+                              ? FontStyle.normal
+                              : FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
           // Details grid
           Row(
             children: [
@@ -505,8 +600,13 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Quick actions
-          if (canEdit && status != 'verified') ...[
+          // Quick actions. Rendered for admins (status != verified) AND for
+          // the kid assignee on a rejected chore (so they can Re-do from
+          // detail too, not just from the dashboard).
+          if ((canEdit && status != 'verified') ||
+              (status == 'rejected' &&
+                  Permissions.isKid(_householdMember) &&
+                  _chore?['assigned_to_member_id'] == _householdMember?['id'])) ...[
             const Text(
               'Quick Actions',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
@@ -516,15 +616,26 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (status == 'assigned')
+                if (canEdit && status == 'assigned')
                   _buildActionChip('Start', Icons.play_arrow_rounded, AppColors.skyBlue, () => _quickUpdateStatus('in_progress')),
-                if (status == 'in_progress' || status == 'assigned')
+                if (canEdit && (status == 'in_progress' || status == 'assigned'))
                   _buildActionChip('Complete', Icons.check_circle_rounded, AppColors.grassGreen, () => _quickUpdateStatus('pending_verification')),
                 if (status == 'pending_verification' && isAdmin)
                   _buildActionChip('Verify', Icons.verified_rounded, const Color(0xFF4CAF50), () => _quickUpdateStatus('verified')),
-                if (status != 'skipped')
+                // Batch 4b — Reject chip (admin + pending_verification): same
+                // _showRejectReasonDialog flow as the dashboard's Pending
+                // Verification card. Confirmed in Q6.
+                if (status == 'pending_verification' && isAdmin)
+                  _buildActionChip('Reject', Icons.close_rounded, AppColors.coral, _rejectFromDetail),
+                // Batch 4b — Re-do chip (kid + own + rejected). Mirrors the
+                // dashboard's Re-do button.
+                if (status == 'rejected' &&
+                    Permissions.isKid(_householdMember) &&
+                    _chore?['assigned_to_member_id'] == _householdMember?['id'])
+                  _buildActionChip('Re-do', Icons.refresh_rounded, AppColors.honeyGold, _redoFromDetail),
+                if (canEdit && status != 'skipped')
                   _buildActionChip('Skip', Icons.skip_next_rounded, Colors.grey, () => _quickUpdateStatus('skipped')),
-                if (status != 'assigned')
+                if (canEdit && status != 'assigned')
                   _buildActionChip('Reassign', Icons.refresh_rounded, AppColors.honeyGold, () => _quickUpdateStatus('assigned')),
               ],
             ),
@@ -872,6 +983,120 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Batch 4b — Re-do entry point from chore_detail. Calls redo_chore RPC
+  /// + shows the same 5s Undo SnackBar as the dashboard's _redoChore.
+  Future<void> _redoFromDetail() async {
+    try {
+      await Supabase.instance.client.rpc('redo_chore', params: {
+        'p_chore_id': widget.choreId,
+        'p_member_id': _householdMember!['id'],
+      });
+
+      await _loadData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Chore reset to assigned'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () async {
+                try {
+                  await Supabase.instance.client.from('chores').update({
+                    'status': 'rejected',
+                  }).eq('id', widget.choreId);
+                  await _loadData();
+                } catch (e) {
+                  debugPrint('redo undo failed: $e');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not undo: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('redo_chore failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not re-do chore: $e')),
+        );
+      }
+    }
+  }
+
+  /// Batch 4b — Reject entry point from chore_detail. Opens the same reason
+  /// dialog used in the dashboard then calls approve_chore with p_approved=false.
+  Future<void> _rejectFromDetail() async {
+    try {
+      final reason = await _showRejectReasonDialog(
+          context, _chore?['title'] ?? 'this chore');
+      if (reason == null) return; // cancelled
+
+      await Supabase.instance.client.rpc('approve_chore', params: {
+        'p_chore_id': widget.choreId,
+        'p_approved': false,
+        'p_reason': reason.isEmpty ? null : reason,
+      });
+
+      await _loadData();
+    } catch (e) {
+      debugPrint('approve_chore reject failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not reject chore: $e')),
+        );
+      }
+    }
+  }
+
+  /// Reject reason dialog, duplicated from chore_dashboard. Returns the reason
+  /// (possibly empty) or null if cancelled. Caller converts '' → null.
+  Future<String?> _showRejectReasonDialog(
+      BuildContext context, String choreName) async {
+    final controller = TextEditingController();
+    return showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Reject "$choreName"?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Tell them why (optional):'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Try again — room still has clothes on the floor',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
+            child: const Text('Reject'),
+          ),
+        ],
       ),
     );
   }

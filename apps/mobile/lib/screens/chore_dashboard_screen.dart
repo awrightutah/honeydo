@@ -6,6 +6,7 @@ import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
 import '../services/image_upload_service.dart';
 import '../utils/permissions.dart';
+import '../widgets/chore_photo_viewer.dart';
 import 'chore_detail_screen.dart';
 
 class ChoreDashboardScreen extends StatefulWidget {
@@ -22,6 +23,9 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
 
   List<Map<String, dynamic>> _myChores = [];
   List<Map<String, dynamic>> _pendingVerification = [];
+  // Most-recent chore_verification_photos row per chore_id, for the admin
+  // Pending Verification thumbnails. Null value = kid skipped the photo (4a).
+  Map<String, Map<String, dynamic>?> _latestPhotoByChoreId = {};
   Map<String, dynamic>? _household;
   Map<String, dynamic>? _myMembership;
   bool _isLoading = true;
@@ -95,17 +99,19 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
       }
       final myMemberId = _myMembership!['id'];
 
-      // Load chores assigned to me that are assigned/pending
+      // Load chores assigned to me. Batch 4b broadens to include 'rejected'
+      // so kids see them with a Re-do button and the rejection reason.
       final myChores = await Supabase.instance.client
           .from('chores')
           .select()
           .eq('household_id', householdId)
           .eq('assigned_to_member_id', myMemberId)
-          .inFilter('status', ['assigned', 'in_progress'])
+          .inFilter('status', ['assigned', 'in_progress', 'rejected'])
           .order('due_at', ascending: true);
 
       // Load chores pending verification (if admin)
       List<Map<String, dynamic>> pendingVerif = [];
+      Map<String, Map<String, dynamic>?> photosByChore = {};
       if (Permissions.canVerifyChores(_myMembership)) {
         pendingVerif = await Supabase.instance.client
             .from('chores')
@@ -113,12 +119,36 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
             .eq('household_id', householdId)
             .eq('status', 'pending_verification')
             .order('completed_at', ascending: true);
+
+        // Most-recent photo per chore for the Pending Verification thumbnails.
+        // Kid may have skipped (Batch 4a) → no row → empty-state thumbnail.
+        if (pendingVerif.isNotEmpty) {
+          final pendingChoreIds = pendingVerif
+              .map((c) => c['id'] as String)
+              .toList(growable: false);
+          final photoRows = await Supabase.instance.client
+              .from('chore_verification_photos')
+              .select()
+              .inFilter('chore_id', pendingChoreIds)
+              .order('created_at', ascending: false);
+
+          // Group by chore_id, keep first (most-recent due to DESC order).
+          for (final row in photoRows) {
+            final cid = row['chore_id'] as String;
+            photosByChore.putIfAbsent(cid, () => Map<String, dynamic>.from(row));
+          }
+          // Ensure every pending chore has an entry (null = skipped/no photo).
+          for (final cid in pendingChoreIds) {
+            photosByChore.putIfAbsent(cid, () => null);
+          }
+        }
       }
 
       if (!mounted) return;
       setState(() {
         _myChores = List<Map<String, dynamic>>.from(myChores);
         _pendingVerification = List<Map<String, dynamic>>.from(pendingVerif);
+        _latestPhotoByChoreId = photosByChore;
         _isLoading = false;
       });
     } catch (e) {
@@ -260,14 +290,23 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     try {
       final chore = _pendingVerification.firstWhere((c) => c['id'] == choreId);
 
+      // Batch 4b reject path: prompt for an optional reason text.
+      String? reasonForReject;
+      if (!approved) {
+        final reason = await _showRejectReasonDialog(
+            context, chore['title'] ?? 'this chore');
+        if (reason == null) return; // user cancelled the dialog
+        reasonForReject = reason.isEmpty ? null : reason;
+      }
+
       // approve_chore (migration 0017) handles the status update, points
       // award (with kid/adult branching), achievements check, and photo
       // delete_after scheduling server-side. Reject sets status='rejected'
-      // (final — kid Re-do affordance lands in Batch 4).
+      // — kid Re-do affordance is in Batch 4b (redo_chore RPC, migration 0020).
       await Supabase.instance.client.rpc('approve_chore', params: {
         'p_chore_id': choreId,
         'p_approved': approved,
-        'p_reason': null,  // Batch 4 adds UI for entering rejection reason
+        'p_reason': reasonForReject,
       });
 
       // Recurring chores still need next-occurrence creation app-side;
@@ -285,6 +324,98 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
         );
       }
     }
+  }
+
+  /// Kid taps Re-do on a rejected chore. Calls redo_chore RPC (migration 0020)
+  /// then shows a 5-second SnackBar with an Undo action that reverts status
+  /// back to 'rejected' via a direct UPDATE (admin-only RLS allows the parent
+  /// adult JWT to do this). After 5s, the Re-do is final.
+  Future<void> _redoChore(String choreId) async {
+    try {
+      await Supabase.instance.client.rpc('redo_chore', params: {
+        'p_chore_id': choreId,
+        'p_member_id': _myMembership!['id'],
+      });
+
+      _loadData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Chore reset to assigned'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () async {
+                try {
+                  await Supabase.instance.client.from('chores').update({
+                    'status': 'rejected',
+                  }).eq('id', choreId);
+                  await _loadData();
+                } catch (e) {
+                  debugPrint('redo undo failed: $e');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not undo: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('redo_chore failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not re-do chore: $e')),
+        );
+      }
+    }
+  }
+
+  /// Returns the reason text (possibly empty), or null if the admin cancelled.
+  /// Caller converts '' → null before passing to approve_chore so the RPC
+  /// stores a NULL rejected_reason in that case.
+  Future<String?> _showRejectReasonDialog(
+      BuildContext context, String choreName) async {
+    final controller = TextEditingController();
+    return showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Reject "$choreName"?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Tell them why (optional):'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Try again — room still has clothes on the floor',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddChoreSheet() {
@@ -370,11 +501,16 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
                       if (isAdmin && _pendingVerification.isNotEmpty) ...[
                         _SectionHeader(title: 'Pending Verification', count: totalVerification),
                         const SizedBox(height: 8),
-                        ..._pendingVerification.map((chore) => _VerificationCard(
-                              chore: chore,
-                              onApprove: () => _verifyChore(chore['id'], true),
-                              onReject: () => _verifyChore(chore['id'], false),
-                            )),
+                        ..._pendingVerification.map((chore) {
+                          final photo = _latestPhotoByChoreId[chore['id']];
+                          return _VerificationCard(
+                            chore: chore,
+                            latestPhoto: photo,
+                            onApprove: () => _verifyChore(chore['id'], true),
+                            onReject: () => _verifyChore(chore['id'], false),
+                            onPhotoDeleted: _loadData,
+                          );
+                        }),
                         const SizedBox(height: 24),
                       ],
 
@@ -400,6 +536,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
                         ..._myChores.map((chore) => _ChoreCard(
                               chore: chore,
                               onComplete: () => _completeChore(chore['id']),
+                              onRedo: () => _redoChore(chore['id']),
                             )),
                     ],
                   ),
@@ -485,9 +622,14 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _ChoreCard extends StatelessWidget {
-  const _ChoreCard({required this.chore, required this.onComplete});
+  const _ChoreCard({
+    required this.chore,
+    required this.onComplete,
+    required this.onRedo,
+  });
   final Map<String, dynamic> chore;
   final VoidCallback onComplete;
+  final VoidCallback onRedo;
 
   @override
   Widget build(BuildContext context) {
@@ -500,6 +642,8 @@ class _ChoreCard extends StatelessWidget {
     final isChoreOfDay = chore['chore_of_day_date'] != null;
     final status = chore['status'] ?? 'assigned';
     final isActionable = status == 'assigned' || status == 'in_progress';
+    final isRejected = status == 'rejected';
+    final rejectedReason = chore['rejected_reason'] as String?;
 
     final difficultyColor = switch (difficulty) {
       'hard' => AppColors.coral,
@@ -558,6 +702,33 @@ class _ChoreCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (isRejected) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.cancel_outlined, size: 14, color: AppColors.coral),
+                    const SizedBox(width: 4),
+                    Text('Rejected',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.coral)),
+                  ],
+                ),
+                if (rejectedReason != null && rejectedReason.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '"$rejectedReason"',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -596,6 +767,19 @@ class _ChoreCard extends StatelessWidget {
                       backgroundColor: AppColors.grassGreen,
                     ),
                   ),
+                )
+              else if (isRejected)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onRedo,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Re-do'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                      backgroundColor: AppColors.honeyGold,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -615,10 +799,20 @@ class _ChoreCard extends StatelessWidget {
 }
 
 class _VerificationCard extends StatelessWidget {
-  const _VerificationCard({required this.chore, required this.onApprove, required this.onReject});
+  const _VerificationCard({
+    required this.chore,
+    required this.latestPhoto,
+    required this.onApprove,
+    required this.onReject,
+    required this.onPhotoDeleted,
+  });
   final Map<String, dynamic> chore;
+  // Most-recent chore_verification_photos row for this chore, or null if
+  // the kid skipped the photo (4a Skip Photo branch).
+  final Map<String, dynamic>? latestPhoto;
   final VoidCallback onApprove;
   final VoidCallback onReject;
+  final VoidCallback onPhotoDeleted;
 
   @override
   Widget build(BuildContext context) {
@@ -626,6 +820,8 @@ class _VerificationCard extends StatelessWidget {
     final points = chore['point_value'] ?? 5;
     final assignee = chore['assignee'] as Map<String, dynamic>?;
     final completedBy = assignee?['display_name'] ?? 'Someone';
+    final storagePath = latestPhoto?['storage_path'] as String?;
+    final photoId = latestPhoto?['id'] as String?;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -644,17 +840,50 @@ class _VerificationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(name,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800)),
+                            ),
+                            Text('+$points pts',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: AppColors.honeyGold)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Completed by $completedBy',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text('+$points pts', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.honeyGold)),
+                  const SizedBox(width: 12),
+                  // Photo thumbnail (or empty state for Skip Photo submissions).
+                  // Admin can tap to view full-screen + delete from there.
+                  ChorePhotoThumbnail(
+                    storagePath: storagePath,
+                    photoId: photoId,
+                    canDelete: true,
+                    onDeleted: onPhotoDeleted,
+                    size: 64,
+                  ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Completed by $completedBy',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               Row(
