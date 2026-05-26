@@ -150,6 +150,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showEditProfileSheet() async {
+    // Batch 7b-i — capture member id as a closure variable at sheet open
+    // time, NOT at Save time. Pre-fix, the Save handler read
+    // `_myMembership!['id']` dynamically — so if the active member switched
+    // mid-sheet (admin -> Randi via baby-icon switcher), the Save would
+    // write to Randi's row instead of the admin's. Capturing the id here
+    // freezes the target to whoever opened the sheet.
+    final capturedMemberId = _myMembership!['id'] as String;
     final nameController = TextEditingController(
       text: _myMembership?['display_name'] ?? '',
     );
@@ -189,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         .update({
                           'display_name': nameController.text.trim(),
                         })
-                        .eq('id', _myMembership!['id']);
+                        .eq('id', capturedMemberId);
 
                     Navigator.pop(context, true);
                     await _loadData();

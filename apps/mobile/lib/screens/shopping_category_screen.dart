@@ -97,35 +97,20 @@ class _ShoppingCategoryScreenState extends State<ShoppingCategoryScreen> {
   }
 
   Future<void> _addCustomCategory() async {
-    final controller = TextEditingController();
+    // Batch 7b-i — latent dispose bug fix. Previously the TextEditingController
+    // was disposed synchronously after `await showDialog(...)` returned, but
+    // showDialog returns when `Navigator.pop` fires, which is BEFORE the
+    // dismissal animation completes. The TextField was still rebuilding
+    // against the now-disposed controller during the animation frame,
+    // throwing 'TextEditingController used after being disposed' and
+    // cascading into a `_dependents.isEmpty` assertion. Same pattern as
+    // reject_reason_dialog's 5b-i fix: let a StatefulWidget's State own the
+    // controller so dispose fires after the widget tree unmounts, post-
+    // animation.
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Category'),
-        content: TextFormField(
-          controller: controller,
-          textCapitalization: TextCapitalization.words,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Category name',
-            hintText: 'e.g., Baby Supplies, Garden',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (_) => const _AddCategoryDialog(),
     );
-
-    controller.dispose();
 
     if (result != null && result.isNotEmpty) {
       // Check if it already exists
@@ -278,4 +263,53 @@ class _CategoryDef {
   final IconData icon;
   final Color color;
   final String emoji;
+}
+
+/// Batch 7b-i — StatefulWidget that owns its TextEditingController's
+/// lifecycle. State.dispose() fires after the widget tree fully unmounts
+/// (post-animation), so the TextField never rebuilds against a disposed
+/// controller. Returns the trimmed text via Navigator.pop when the user
+/// taps Add; null when they tap Cancel.
+class _AddCategoryDialog extends StatefulWidget {
+  const _AddCategoryDialog();
+
+  @override
+  State<_AddCategoryDialog> createState() => _AddCategoryDialogState();
+}
+
+class _AddCategoryDialogState extends State<_AddCategoryDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Category'),
+      content: TextFormField(
+        controller: _controller,
+        textCapitalization: TextCapitalization.words,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Category name',
+          hintText: 'e.g., Baby Supplies, Garden',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
 }

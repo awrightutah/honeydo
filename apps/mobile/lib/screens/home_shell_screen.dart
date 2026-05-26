@@ -371,7 +371,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     const PopupMenuItem(value: 'members', child: Row(children: [Icon(Icons.people_rounded, size: 20), SizedBox(width: 12), Text('Household Members')])),
                     const PopupMenuItem(value: 'activity', child: Row(children: [Icon(Icons.timeline_rounded, size: 20), SizedBox(width: 12), Text('Activity Feed')])),
                     const PopupMenuItem(value: 'stats', child: Row(children: [Icon(Icons.bar_chart_rounded, size: 20), SizedBox(width: 12), Text('Household Stats')])),
-                    const PopupMenuItem(value: 'templates', child: Row(children: [Icon(Icons.assignment_rounded, size: 20), SizedBox(width: 12), Text('Chore Templates')])),
+                    // Batch 7b-i — admin-only menu entry. Chore templates are
+                    // an admin authoring tool; the screen itself rejects kid
+                    // writes, but the menu shouldn't expose the entry point.
+                    if (Permissions.isAdmin(_myMembership))
+                      const PopupMenuItem(value: 'templates', child: Row(children: [Icon(Icons.assignment_rounded, size: 20), SizedBox(width: 12), Text('Chore Templates')])),
                     const PopupMenuItem(value: 'invites', child: Row(children: [Icon(Icons.mail_rounded, size: 20), SizedBox(width: 12), Text('Invite Codes')])),
                     const PopupMenuItem(value: 'announcements', child: Row(children: [Icon(Icons.campaign_rounded, size: 20), SizedBox(width: 12), Text('Announcements')])),
                     const PopupMenuItem(value: 'export', child: Row(children: [Icon(Icons.download_rounded, size: 20), SizedBox(width: 12), Text('Export Data')])),

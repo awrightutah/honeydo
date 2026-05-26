@@ -288,7 +288,10 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
       appBar: AppBar(
         title: const Text("Today's Chores 🐝"),
         actions: [
-          if (_household != null)
+          // Batch 7b-i — admin-only Add Chore affordance. RLS would have
+          // caught a kid INSERT, but the affordance shouldn't be visible
+          // in the first place. Mirrors the gate on the bottom-right FAB.
+          if (_household != null && Permissions.isAdmin(_myMembership))
             IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded),
               onPressed: _showAddChoreSheet,
@@ -387,14 +390,15 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
             ),
         ],
       ),
-      floatingActionButton: _household != null
-          ? FloatingActionButton.extended(
-              heroTag: 'chores-fab',
-              onPressed: _showAddChoreSheet,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add Chore'),
-            )
-          : null,
+      floatingActionButton:
+          (_household != null && Permissions.isAdmin(_myMembership))
+              ? FloatingActionButton.extended(
+                  heroTag: 'chores-fab',
+                  onPressed: _showAddChoreSheet,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Add Chore'),
+                )
+              : null,
     );
   }
 
