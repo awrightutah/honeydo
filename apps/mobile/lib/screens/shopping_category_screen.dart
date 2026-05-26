@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 /// Manage shopping item categories: reorder, add custom, delete.
 /// Also used to assign categories to items.
@@ -40,19 +41,19 @@ class _ShoppingCategoryScreenState extends State<ShoppingCategoryScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-iii — Pattern A (LOW-risk): household-scoped category list,
+      // no permission gating on _myMembership downstream. No listener needed.
+      // The latent TextEditingController dispose bug elsewhere in this file
+      // is tracked for Batch 7b — not addressed here.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _household = memberships[0]['households'];
+      _household = membership['households'];
       final householdId = _household!['id'];
 
       // Load custom categories from shopping_items distinct categories

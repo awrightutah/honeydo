@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 /// Screen for exporting household data as JSON or CSV.
 class DataExportScreen extends StatefulWidget {
@@ -128,19 +129,13 @@ class _DataExportScreenState extends State<DataExportScreen> {
   Future<void> _export() async {
     setState(() => _isExporting = true);
     try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) throw Exception('Not authenticated');
+      // Batch 7a-iii — Pattern A (LOW-risk): household-scoped export, no
+      // permission gating on _myMembership downstream. Admin-only feature
+      // in practice. No listener needed.
+      final membership = await MembershipHelper.loadActiveMembership();
+      if (membership == null) throw Exception('No household found');
 
-      // Get user's household
-      final memberRes = await _supabase
-          .from('household_members')
-          .select('household_id')
-          .eq('auth_user_id', user.id)
-          .maybeSingle();
-
-      if (memberRes == null) throw Exception('No household found');
-
-      final householdId = memberRes['household_id'] as String;
+      final householdId = membership['household_id'] as String;
       final data = <String, dynamic>{};
 
       if (_sections['Chores']!) {

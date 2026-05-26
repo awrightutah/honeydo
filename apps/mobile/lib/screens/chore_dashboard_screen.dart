@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
 import '../services/image_upload_service.dart';
+import '../utils/membership.dart';
 import '../utils/music_apps.dart';
 import '../utils/music_launcher.dart';
 import '../utils/permissions.dart';
@@ -60,17 +61,16 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     });
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final userId = user.id;
+      // Batch 7a-iii (CLEANUP) — replaced the verbose manual overlay with
+      // MembershipHelper. The helper does the same JWT-holder-then-active-id
+      // resolution that the original ~15 LOC overlay did. The existing
+      // ActiveMemberService listener (registered elsewhere in this State)
+      // stays in place; we just simplified the lookup itself.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      // Get user's household membership
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', userId)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      if (membership == null) {
         setState(() {
           _isLoading = false;
           _errorMessage = 'You\'re not in a household yet. Create or join one to get started!';
@@ -78,22 +78,9 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
         return;
       }
 
-      final adultMembership = Map<String, dynamic>.from(memberships[0]);
-      _household = adultMembership['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
-      final activeMemberId = ActiveMemberService.instance.activeMemberId.value;
-      if (activeMemberId != null && activeMemberId != adultMembership['id']) {
-        final activeRows = await Supabase.instance.client
-            .from('household_members')
-            .select()
-            .eq('id', activeMemberId)
-            .eq('household_id', householdId)
-            .eq('is_active', true)
-            .limit(1);
-        _myMembership = activeRows.isNotEmpty ? activeRows[0] : adultMembership;
-      } else {
-        _myMembership = adultMembership;
-      }
       final myMemberId = _myMembership!['id'];
 
       // Load chores assigned to me. Batch 4b broadens to include 'rejected'

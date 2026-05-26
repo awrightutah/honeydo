@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 /// Subscription and payment screen for managing household premium tier.
 class SubscriptionScreen extends StatefulWidget {
@@ -23,18 +24,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Future<void> _loadData() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      
-      // Get household
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('household_id, households(*)')
-          .eq('auth_user_id', user.id)
-          .eq('is_active', true)
-          .limit(1);
-
-      if (memberships.isNotEmpty) {
-        _household = memberships[0]['households'];
+      // Batch 7a-iii — Pattern A (LOW-risk): household-scoped screen, no
+      // permission gating on _myMembership downstream. No listener needed.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership != null) {
+        _household = membership['households'];
         final householdId = _household!['id'];
 
         // Load subscription
@@ -55,6 +51,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         }
       }
     } catch (e) {
+      debugPrint('subscription_screen load failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading subscription: $e')),

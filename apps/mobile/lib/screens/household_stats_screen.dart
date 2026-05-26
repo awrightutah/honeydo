@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 import 'member_profile_screen.dart';
 
 /// Household statistics dashboard with visual breakdowns of activity,
@@ -44,20 +45,19 @@ class _HouseholdStatsScreenState extends State<HouseholdStatsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-iii — Pattern A (LOW-risk): household-wide stats, no
+      // permission gating on _myMembership. Numbers are the same for kid and
+      // admin within the same household. No listener needed.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
 
       // Load all stats in parallel

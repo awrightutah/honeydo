@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 import 'chore_dashboard_screen.dart';
 import 'meal_planner_screen.dart';
@@ -149,16 +150,17 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
   Future<void> _loadHouseholdInfo() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
+      // Batch 7a-iii (CLEANUP) — replaced the verbose manual overlay with
+      // MembershipHelper. The helper does the same JWT-holder-then-active-id
+      // resolution internally; we still load the full members list separately
+      // for the profile switcher menu.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      if (memberships.isNotEmpty) {
-        final adultMembership = Map<String, dynamic>.from(memberships[0]);
-        _household = adultMembership['households'];
+      if (membership != null) {
+        _household = membership['households'];
+        _myMembership = membership;
 
         final members = await Supabase.instance.client
             .from('household_members')
@@ -168,14 +170,14 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             .order('created_at');
         _householdMembers = List<Map<String, dynamic>>.from(members);
 
-        final requestedActiveId = ActiveMemberService.instance.activeMemberId.value;
-        final activeMember = _householdMembers.firstWhere(
-          (m) => m['id'] == requestedActiveId,
-          orElse: () => adultMembership,
-        );
-        _myMembership = activeMember;
-        if (requestedActiveId == null || activeMember['id'] != requestedActiveId) {
-          await ActiveMemberService.instance.switchTo(adultMembership['id']);
+        // If the persisted active-member id doesn't match what the helper
+        // resolved to (either it was never set, or the kid sub_profile it
+        // pointed to has been deactivated), sync ActiveMemberService to the
+        // resolved id so subsequent listeners see the corrected value.
+        final requestedActiveId =
+            ActiveMemberService.instance.activeMemberId.value;
+        if (requestedActiveId != _myMembership!['id']) {
+          await ActiveMemberService.instance.switchTo(_myMembership!['id']);
         }
 
         // Subscribe to realtime updates for this household

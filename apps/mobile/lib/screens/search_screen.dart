@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 import 'chore_detail_screen.dart';
 import 'recipe_detail_screen.dart';
 
@@ -41,17 +42,17 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _loadHousehold() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('household_id')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isNotEmpty) {
-        setState(() => _household = {'id': memberships[0]['household_id']});
+      // Batch 7a-iii — Pattern A (LOW-risk): only household_id is consumed
+      // downstream, and kid + parent admin share the same household, so this
+      // migration is for code-consistency, not bug fix. No ActiveMemberService
+      // listener needed.
+      final membership = await MembershipHelper.loadActiveMembership();
+      if (membership != null) {
+        setState(() => _household = {'id': membership['household_id']});
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('search_screen load household failed: $e');
+    }
   }
 
   Future<void> _performSearch(String query) async {
