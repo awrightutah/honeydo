@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../utils/music_apps.dart';
 
 /// Public profile screen for a household member.
 /// Viewable by tapping on a member in the leaderboard or stats.
@@ -134,6 +135,16 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
                       _buildStatsRow(),
                       const SizedBox(height: 24),
 
+                      // Batch 8 — admin music picker for kids only. No
+                      // launch button on this view (admin is configuring,
+                      // not using). Adults see no music UI here.
+                      if (_member!['kind'] == 'sub_profile') ...[
+                        _buildSectionHeader('Music', Icons.music_note_rounded),
+                        const SizedBox(height: 12),
+                        _buildMusicAppRow(),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Badges section
                       if (_badges.isNotEmpty) ...[
                         _buildSectionHeader('Badges', Icons.military_tech_rounded),
@@ -150,6 +161,113 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
                   ),
                 ),
     );
+  }
+
+  // ─── Batch 8: admin's music picker for a kid (no launcher button) ────
+
+  Widget _buildMusicAppRow() {
+    final info = MusicAppInfo.fromDbValue(
+      _member?['music_app_preference'] as String?,
+    );
+    return Card(
+      child: InkWell(
+        onTap: _pickMusicApp,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Text(
+                info?.emoji ?? '🎵',
+                style: const TextStyle(fontSize: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Music app',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      info?.label ?? 'Not set yet — tap to choose',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Admin-side picker. UPDATE writes to the viewed kid's member_id, not the
+  /// admin's own. RLS at the household level already permits this.
+  Future<void> _pickMusicApp() async {
+    final selected = await showModalBottomSheet<MusicAppInfo>(
+      context: context,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Text(
+                  'Choose a music app',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ),
+              for (final info in MusicAppInfo.allApps)
+                ListTile(
+                  key: ValueKey(info.dbValue),
+                  leading: Text(info.emoji,
+                      style: const TextStyle(fontSize: 26)),
+                  title: Text(
+                    info.label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  onTap: () => Navigator.pop(sheetCtx, info),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null) return;
+    try {
+      await Supabase.instance.client
+          .from('household_members')
+          .update({'music_app_preference': selected.dbValue})
+          .eq('id', widget.memberId);
+      if (!mounted) return;
+      setState(() {
+        _member = {..._member!, 'music_app_preference': selected.dbValue};
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Music app set to ${selected.label}')),
+      );
+    } catch (e) {
+      debugPrint('admin update music_app_preference failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Couldn't save music app: $e")),
+        );
+      }
+    }
   }
 
   Widget _buildProfileHeader() {

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../services/image_upload_service.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
+import '../utils/music_apps.dart';
+import '../utils/permissions.dart';
 
 /// Profile screen for managing display name, avatar, and viewing member details.
 class ProfileScreen extends StatefulWidget {
@@ -26,18 +31,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // Batch 8 — when the active member switches (admin -> kid or vice versa)
+    // the profile contents need to reload so the Music section appears or
+    // disappears against the new perspective.
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
     _displayNameController.dispose();
     super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     try {
       final user = Supabase.instance.client.auth.currentUser!;
-      
+
       // Load profile
       final profile = await Supabase.instance.client
           .from('profiles')
@@ -45,22 +61,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .eq('id', user.id)
           .single();
 
-      // Load membership with household
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .eq('is_active', true)
-          .limit(1);
-
-      if (memberships.isNotEmpty) {
-        _membership = memberships[0];
-        _household = memberships[0]['households'];
+      // Batch 8 — MembershipHelper resolves to the active kid sub_profile when
+      // one is selected. Without this, a kid session falls back to the parent
+      // admin's row and the kid Music section never renders.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership != null) {
+        _membership = membership;
+        _household = membership['households'];
       }
 
       _profile = profile;
       _displayNameController.text = _membership?['display_name'] ?? profile['display_name'] ?? '';
     } catch (e) {
+      debugPrint('profile load failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading profile: $e')),
@@ -68,6 +83,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ─── Batch 8: kid music app deep link ───────────────────────────────────
+
+  /// Open the kid's preferred music app via URL scheme. If the app isn't
+  /// installed, fall back to the App Store after a brief SnackBar. If no
+  /// preference has been set, surface the picker instead of launching.
+  Future<void> _playMusic() async {
+    final info = MusicAppInfo.fromDbValue(
+      _membership?['music_app_preference'] as String?,
+    );
+    if (info == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose your music app first')),
+      );
+      await _pickMusicApp();
+      return;
+    }
+    try {
+      final uri = Uri.parse(info.urlScheme);
+      final canLaunch = await canLaunchUrl(uri);
+      if (canLaunch) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${info.label} isn't installed — opening App Store"),
+        ),
+      );
+      await launchUrl(
+        Uri.parse(info.appStoreUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('play music failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Couldn't open music app: $e")),
+        );
+      }
+    }
+  }
+
+  /// Bottom-sheet picker. Tapping an app writes the kid's preference back to
+  /// `household_members.music_app_preference` and refreshes the screen.
+  Future<void> _pickMusicApp() async {
+    final memberId = _membership?['id'] as String?;
+    if (memberId == null) return;
+    final selected = await showModalBottomSheet<MusicAppInfo>(
+      context: context,
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: Text(
+                  'Choose a music app',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              for (final info in MusicAppInfo.allApps)
+                ListTile(
+                  key: ValueKey(info.dbValue),
+                  leading: Text(info.emoji, style: const TextStyle(fontSize: 26)),
+                  title: Text(
+                    info.label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  onTap: () => Navigator.pop(sheetCtx, info),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null) return;
+    try {
+      await Supabase.instance.client
+          .from('household_members')
+          .update({'music_app_preference': selected.dbValue})
+          .eq('id', memberId);
+      if (!mounted) return;
+      setState(() {
+        _membership = {
+          ..._membership!,
+          'music_app_preference': selected.dbValue,
+        };
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Music app set to ${selected.label}')),
+      );
+    } catch (e) {
+      debugPrint('update music_app_preference failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Couldn't save music app: $e")),
+        );
+      }
     }
   }
 
@@ -326,6 +448,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       const SizedBox(height: 24),
 
+                      // Batch 8 — Music section. Only shown when the active
+                      // member is a kid sub_profile; adults don't get the
+                      // launcher UI on their own profile.
+                      if (Permissions.isKid(_membership)) ...[
+                        Text('MUSIC', style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        )),
+                        const SizedBox(height: 8),
+                        _musicAppRow(),
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
+                          onPressed: _playMusic,
+                          icon: const Text('🎵', style: TextStyle(fontSize: 18)),
+                          label: const Text('Play Music'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.honeyGold,
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Gamification stats
                       Text('STATS', style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -359,6 +508,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  /// Batch 8 — tappable row showing the kid's current music app pick (or
+  /// "Not set yet"). Tap opens the picker bottom sheet.
+  Widget _musicAppRow() {
+    final info = MusicAppInfo.fromDbValue(
+      _membership?['music_app_preference'] as String?,
+    );
+    return Card(
+      child: InkWell(
+        onTap: _pickMusicApp,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Text(
+                info?.emoji ?? '🎵',
+                style: const TextStyle(fontSize: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Music app',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      info?.label ?? 'Not set yet — tap to choose',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
