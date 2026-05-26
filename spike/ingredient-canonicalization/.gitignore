@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Secrets
+.env
+
+# Local per-run results (keep the committable summary.md though)
+results/*.local.json

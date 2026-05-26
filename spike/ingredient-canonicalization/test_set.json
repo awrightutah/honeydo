@@ -1,0 +1,177 @@
+{
+  "_meta": {
+    "spike": "recipe URL scraping (re-framed from ingredient canonicalization)",
+    "date": "2026-05-26",
+    "count": 17,
+    "distribution": {
+      "major_site": 4,
+      "food_blog": 6,
+      "random_blog": 5,
+      "non_standard": 2
+    },
+    "user_review": "Final list after user spot-checks. Several original picks 404'd and were replaced with known-live URLs; 3 non-standard placeholders (Reddit / Substack / Medium) were dropped entirely. Pinterest + Instagram retained intentionally as failure-mode tests.",
+    "dropped_slots": [
+      {
+        "original_id": 16,
+        "url": "https://www.reddit.com/r/recipes/comments/4uvzhq/the_best_chocolate_chip_cookies/",
+        "reason": "Discussion thread, not a single recipe entity. Doesn't fit the spike's 'extract one recipe from one URL' frame."
+      },
+      {
+        "original_id": 17,
+        "url": "https://vittles.substack.com/p/vittles-recipe-iranian-herb-omelette",
+        "reason": "Dropped per user request — Substack recipe posts are functionally similar to Medium (prose-only, no schema). Slot 18's Medium pick covered the same surface; user opted to skip both."
+      },
+      {
+        "original_id": 18,
+        "url": "https://medium.com/the-bold-italic/the-only-pesto-recipe-youll-ever-need-3e2e5c7f8b9a",
+        "reason": "Dropped per user request. Same rationale as the Substack drop."
+      }
+    ],
+    "notes": [
+      "Pinterest and Instagram remain in the test set as DELIBERATE failure-mode tests. They are NOT bugs; the spike is meant to confirm that even Claude has no useful path on these URL types (Pinterest pins point elsewhere; Instagram caption may or may not contain a recipe). Their inclusion stress-tests the 'expected_to_work_with: [claude_api]' classification.",
+      "Slot 7 (Half Baked Harvest) is a deliberate EDGE CASE: a roundup post listing 40 dinner recipes, NOT a single Recipe schema entity. schema.org and recipe-scrapers will both fail because there is no Recipe schema on the page. Claude might extract one of the listed recipes, or might fail gracefully — the spike measures this."
+    ]
+  },
+  "urls": [
+    {
+      "id": 1,
+      "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "source_type": "major_site",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Recipe ID 10813 stable since the early 2000s. Comprehensive schema.org/Recipe markup. recipe-scrapers explicitly supports allrecipes.com."
+    },
+    {
+      "id": 2,
+      "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "source_type": "major_site",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Ina Garten classic. Embedded JSON-LD. recipe-scrapers supports foodnetwork.com."
+    },
+    {
+      "id": 3,
+      "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "source_type": "major_site",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Kenji López-Alt's Food Lab cookies. Serious Eats has been a recipe-scrapers reference site for years."
+    },
+    {
+      "id": 4,
+      "url": "https://40aprons.com/marry-me-chicken/",
+      "source_type": "food_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Replaces the original Simply Recipes banana bread (404'd). 40 Aprons is a standard WordPress food blog with Tasty Recipes or WP Recipe Maker — schema.org expected. Reclassified from major_site to food_blog: it's a popular indie blog, not a tentpole site. Provided by user as a known-live URL."
+    },
+    {
+      "id": 5,
+      "url": "https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+      "source_type": "major_site",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "King Arthur Baking flagship site. Strong structured data. Stable URL slug."
+    },
+
+    {
+      "id": 6,
+      "url": "https://smittenkitchen.com/2017/04/big-crumb-coffee-cake/",
+      "source_type": "food_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Deb Perelman / Smitten Kitchen. WordPress + recipe plugin → schema.org. recipe-scrapers supports smittenkitchen.com."
+    },
+    {
+      "id": 7,
+      "url": "https://www.halfbakedharvest.com/40-easy-dinner-recipes-for-busy-weeknights/",
+      "source_type": "food_blog",
+      "edge_case": "roundup_post",
+      "expected_to_work_with": ["claude_api"],
+      "confidence": "high",
+      "notes": "DELIBERATE EDGE CASE: This is a roundup post listing 40 recipes, NOT a single Recipe schema entity. schema.org will return nothing (no Recipe object on the page) and recipe-scrapers will fail with 'no recipe found' or similar. Only Claude has any path here — and even Claude has to choose: pick one recipe from the list? Extract all 40? Refuse? The spike measures graceful-failure behavior. User-provided URL replacing the original 404'd Tuscan chicken pasta."
+    },
+    {
+      "id": 8,
+      "url": "https://sallysbakingaddiction.com/chocolate-chip-cookies/",
+      "source_type": "food_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Sally's Baking Addiction is one of the most-trafficked baking blogs. Uses Tasty Recipes plugin (schema.org compliant)."
+    },
+    {
+      "id": 9,
+      "url": "https://minimalistbaker.com/1-bowl-vegan-gluten-free-chocolate-cake/",
+      "source_type": "food_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "verify",
+      "notes": "Minimalist Baker (plant-based). Uses Tasty Recipes."
+    },
+    {
+      "id": 10,
+      "url": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup",
+      "source_type": "food_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "verify",
+      "notes": "Pinch of Yum lentil soup. recipe-scrapers supports pinchofyum.com."
+    },
+
+    {
+      "id": 11,
+      "url": "https://therecipecritic.com/butter-garlic-herb-steak-foil-packets/",
+      "source_type": "random_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Replaces the original chocolate chip cookies (404'd). User confirmed this URL loads. WordPress recipe blog, standard schema.org expected. Note: original URL had a #wprm-recipe-container-60629 anchor — stripped, the main URL is what matters for scraping."
+    },
+    {
+      "id": 12,
+      "url": "https://www.recipetineats.com/chicken-marsala/",
+      "source_type": "random_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "verify",
+      "notes": "Nagi Maehashi's RecipeTin Eats. Strong recipe schema via WordPress plugins."
+    },
+    {
+      "id": 13,
+      "url": "https://www.skinnytaste.com/air-fryer-chicken-flautas/",
+      "source_type": "random_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Replaces the original meatballs URL (user wanted higher-confidence pick). Skinnytaste uses Tasty Recipes / WP Recipe Maker → schema.org."
+    },
+    {
+      "id": 14,
+      "url": "https://www.budgetbytes.com/dragon-noodles/",
+      "source_type": "random_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Beth Moncel's Budget Bytes. Dragon Noodles is a viral classic from this site. Strong schema.org via Tasty Recipes."
+    },
+    {
+      "id": 15,
+      "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+      "source_type": "random_blog",
+      "expected_to_work_with": ["schema_org", "recipe_scrapers", "claude_api"],
+      "confidence": "high",
+      "notes": "Replaces the original 2019 chicken noodle soup (404'd). Damn Delicious uses date-based URLs. Recent (2025-09) post. WP Recipe Maker → schema.org expected."
+    },
+
+    {
+      "id": 16,
+      "url": "https://www.pinterest.com/pin/3940717959896374/",
+      "source_type": "non_standard",
+      "expected_to_work_with": ["claude_api"],
+      "confidence": "verify",
+      "notes": "DELIBERATE FAILURE-MODE TEST: Pinterest pins are metadata pointing at a source URL — the pin page itself has thumbnail + description but the recipe lives on the linked site. recipe-scrapers won't touch it; schema.org sparse; even Claude likely can't recover the recipe without following the indirection. Inclusion stress-tests the 'just because URL is feedable doesn't mean recipe is extractable' assumption. NOT a bug if all three approaches fail — it's the expected outcome."
+    },
+    {
+      "id": 17,
+      "url": "https://www.instagram.com/p/Cz8mYBcOJqI/",
+      "source_type": "non_standard",
+      "expected_to_work_with": ["claude_api"],
+      "confidence": "verify",
+      "notes": "DELIBERATE FAILURE-MODE TEST: Instagram public post. recipe-scrapers will not work. schema.org sparse. Claude may attempt to read caption text (which sometimes contains the full recipe in popular food-creator posts) but Instagram requires JS-rendered scraping in many cases. Inclusion confirms the bound on AI's reach with social-media URLs. Like Pinterest, expected to fail; not a bug."
+    }
+  ]
+}

@@ -1,0 +1,1780 @@
+{
+  "approach": "claude_api",
+  "model": "claude-haiku-4-5-20251001",
+  "timestamp": "20260526T220810Z",
+  "summary": {
+    "total": 17,
+    "successful_extractions": 9,
+    "failures": 8,
+    "by_source_type": {
+      "major_site": {
+        "full": 0,
+        "fail": 4
+      },
+      "food_blog": {
+        "full": 5,
+        "fail": 1
+      },
+      "random_blog": {
+        "full": 4,
+        "fail": 1
+      },
+      "non_standard": {
+        "full": 0,
+        "fail": 2
+      }
+    },
+    "total_input_tokens": 60773,
+    "total_output_tokens": 5591,
+    "total_latency_ms": 41601,
+    "avg_latency_ms": 2447
+  },
+  "results": [
+    {
+      "id": 1,
+      "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "FetchFailed:HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "latency_ms": 260,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 2,
+      "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "FetchFailed:HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "latency_ms": 240,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 3,
+      "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "FetchFailed:HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "latency_ms": 212,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 4,
+      "url": "https://40aprons.com/marry-me-chicken/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Marry Me Chicken (In Sun-Dried Tomato Cream Sauce)",
+      "ingredients": [
+        {
+          "name": "chicken breasts",
+          "unit": "lb",
+          "quantity": "3",
+          "category": "Meat"
+        },
+        {
+          "name": "salt",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "black pepper",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "olive oil",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "garlic",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "chicken broth",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Pantry"
+        },
+        {
+          "name": "heavy cream",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Dairy"
+        },
+        {
+          "name": "parmesan cheese",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Dairy"
+        },
+        {
+          "name": "sun-dried tomatoes",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "oregano",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "red pepper flakes",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "basil",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Marry Me Chicken (In Sun-Dried Tomato Cream Sauce)",
+        "ingredients": [
+          {
+            "name": "chicken breasts",
+            "unit": "lb",
+            "quantity": "3",
+            "category": "Meat"
+          },
+          {
+            "name": "salt",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "black pepper",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "olive oil",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "garlic",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "chicken broth",
+            "unit": "cup",
+            "quantity": "0.75",
+            "category": "Pantry"
+          },
+          {
+            "name": "heavy cream",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Dairy"
+          },
+          {
+            "name": "parmesan cheese",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Dairy"
+          },
+          {
+            "name": "sun-dried tomatoes",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "oregano",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "red pepper flakes",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "basil",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 3309,
+      "input_tokens": 5305,
+      "output_tokens": 560
+    },
+    {
+      "id": 5,
+      "url": "https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "FetchFailed:HTTPError",
+      "error_message": "404 Client Error: Not Found for url: https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+      "latency_ms": 317,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 6,
+      "url": "https://smittenkitchen.com/2017/04/big-crumb-coffee-cake/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Big Crumb Rhubarb Coffee Cake",
+      "ingredients": [
+        {
+          "name": "rhubarb",
+          "unit": "lb",
+          "quantity": "0.5",
+          "category": "Produce"
+        },
+        {
+          "name": "sugar",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Pantry"
+        },
+        {
+          "name": "cornstarch",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "ground ginger",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "dark brown sugar",
+          "unit": "cup",
+          "quantity": "0.33",
+          "category": "Pantry"
+        },
+        {
+          "name": "granulated sugar",
+          "unit": "cup",
+          "quantity": "0.33",
+          "category": "Pantry"
+        },
+        {
+          "name": "ground cinnamon",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "kosher salt",
+          "unit": "tsp",
+          "quantity": "0.125",
+          "category": "Pantry"
+        },
+        {
+          "name": "butter",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Dairy"
+        },
+        {
+          "name": "cake flour",
+          "unit": "cup",
+          "quantity": "1.75",
+          "category": "Bakery"
+        },
+        {
+          "name": "sour cream",
+          "unit": "cup",
+          "quantity": "0.33",
+          "category": "Dairy"
+        },
+        {
+          "name": "egg",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Dairy"
+        },
+        {
+          "name": "egg yolk",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Dairy"
+        },
+        {
+          "name": "vanilla extract",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "cake flour",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Bakery"
+        },
+        {
+          "name": "granulated sugar",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "baking soda",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "baking powder",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "kosher salt",
+          "unit": "tsp",
+          "quantity": "0.25",
+          "category": "Pantry"
+        },
+        {
+          "name": "butter",
+          "unit": "tbsp",
+          "quantity": "6",
+          "category": "Dairy"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Big Crumb Rhubarb Coffee Cake",
+        "ingredients": [
+          {
+            "name": "rhubarb",
+            "unit": "lb",
+            "quantity": "0.5",
+            "category": "Produce"
+          },
+          {
+            "name": "sugar",
+            "unit": "cup",
+            "quantity": "0.25",
+            "category": "Pantry"
+          },
+          {
+            "name": "cornstarch",
+            "unit": "tsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "ground ginger",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "dark brown sugar",
+            "unit": "cup",
+            "quantity": "0.33",
+            "category": "Pantry"
+          },
+          {
+            "name": "granulated sugar",
+            "unit": "cup",
+            "quantity": "0.33",
+            "category": "Pantry"
+          },
+          {
+            "name": "ground cinnamon",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "kosher salt",
+            "unit": "tsp",
+            "quantity": "0.125",
+            "category": "Pantry"
+          },
+          {
+            "name": "butter",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Dairy"
+          },
+          {
+            "name": "cake flour",
+            "unit": "cup",
+            "quantity": "1.75",
+            "category": "Bakery"
+          },
+          {
+            "name": "sour cream",
+            "unit": "cup",
+            "quantity": "0.33",
+            "category": "Dairy"
+          },
+          {
+            "name": "egg",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Dairy"
+          },
+          {
+            "name": "egg yolk",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Dairy"
+          },
+          {
+            "name": "vanilla extract",
+            "unit": "tsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "cake flour",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Bakery"
+          },
+          {
+            "name": "granulated sugar",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "baking soda",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "baking powder",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "kosher salt",
+            "unit": "tsp",
+            "quantity": "0.25",
+            "category": "Pantry"
+          },
+          {
+            "name": "butter",
+            "unit": "tbsp",
+            "quantity": "6",
+            "category": "Dairy"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 8971,
+      "input_tokens": 8983,
+      "output_tokens": 909
+    },
+    {
+      "id": 7,
+      "url": "https://www.halfbakedharvest.com/40-easy-dinner-recipes-for-busy-weeknights/",
+      "source_type": "food_blog",
+      "edge_case": "roundup_post",
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": {
+        "is_recipe": false,
+        "reason": "This is a roundup page listing 40 different recipes with brief descriptions and links, not a single recipe with ingredients."
+      },
+      "error_type": "ModelDeclaredNotARecipe",
+      "error_message": "This is a roundup page listing 40 different recipes with brief descriptions and links, not a single recipe with ingredients.",
+      "latency_ms": 2469,
+      "input_tokens": 4299,
+      "output_tokens": 51
+    },
+    {
+      "id": 8,
+      "url": "https://sallysbakingaddiction.com/chocolate-chip-cookies/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "The Best Soft Chocolate Chip Cookies",
+      "ingredients": [
+        {
+          "name": "butter",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Dairy"
+        },
+        {
+          "name": "brown sugar",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Pantry"
+        },
+        {
+          "name": "granulated sugar",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Pantry"
+        },
+        {
+          "name": "egg",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Dairy"
+        },
+        {
+          "name": "vanilla extract",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "all-purpose flour",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Bakery"
+        },
+        {
+          "name": "cornstarch",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "baking soda",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "salt",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "chocolate chips",
+          "unit": "cup",
+          "quantity": "1.25",
+          "category": "Pantry"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "The Best Soft Chocolate Chip Cookies",
+        "ingredients": [
+          {
+            "name": "butter",
+            "unit": "cup",
+            "quantity": "0.75",
+            "category": "Dairy"
+          },
+          {
+            "name": "brown sugar",
+            "unit": "cup",
+            "quantity": "0.75",
+            "category": "Pantry"
+          },
+          {
+            "name": "granulated sugar",
+            "unit": "cup",
+            "quantity": "0.25",
+            "category": "Pantry"
+          },
+          {
+            "name": "egg",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Dairy"
+          },
+          {
+            "name": "vanilla extract",
+            "unit": "tsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "all-purpose flour",
+            "unit": "cup",
+            "quantity": "2",
+            "category": "Bakery"
+          },
+          {
+            "name": "cornstarch",
+            "unit": "tsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "baking soda",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "salt",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "chocolate chips",
+            "unit": "cup",
+            "quantity": "1.25",
+            "category": "Pantry"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 3108,
+      "input_tokens": 5172,
+      "output_tokens": 471
+    },
+    {
+      "id": 9,
+      "url": "https://minimalistbaker.com/1-bowl-vegan-gluten-free-chocolate-cake/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "1-Bowl Vegan Gluten-Free Chocolate Cake",
+      "ingredients": [
+        {
+          "name": "banana",
+          "unit": "cup",
+          "quantity": "0.67",
+          "category": "Produce"
+        },
+        {
+          "name": "applesauce",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Produce"
+        },
+        {
+          "name": "vanilla extract",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "almond butter",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "maple syrup",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Pantry"
+        },
+        {
+          "name": "coconut sugar",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "baking powder",
+          "unit": "tsp",
+          "quantity": "1.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "baking soda",
+          "unit": "tsp",
+          "quantity": "1.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "sea salt",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "dairy-free milk",
+          "unit": "cup",
+          "quantity": "1.25",
+          "category": "Beverages"
+        },
+        {
+          "name": "cocoa powder",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "potato starch",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "almond flour",
+          "unit": "cup",
+          "quantity": "2.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "espresso powder",
+          "unit": "tsp",
+          "quantity": "1.5",
+          "category": "Pantry"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "1-Bowl Vegan Gluten-Free Chocolate Cake",
+        "ingredients": [
+          {
+            "name": "banana",
+            "unit": "cup",
+            "quantity": "0.67",
+            "category": "Produce"
+          },
+          {
+            "name": "applesauce",
+            "unit": "cup",
+            "quantity": "0.25",
+            "category": "Produce"
+          },
+          {
+            "name": "vanilla extract",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "almond butter",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "maple syrup",
+            "unit": "cup",
+            "quantity": "0.75",
+            "category": "Pantry"
+          },
+          {
+            "name": "coconut sugar",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "baking powder",
+            "unit": "tsp",
+            "quantity": "1.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "baking soda",
+            "unit": "tsp",
+            "quantity": "1.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "sea salt",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "dairy-free milk",
+            "unit": "cup",
+            "quantity": "1.25",
+            "category": "Beverages"
+          },
+          {
+            "name": "cocoa powder",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "potato starch",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "almond flour",
+            "unit": "cup",
+            "quantity": "2.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "espresso powder",
+            "unit": "tsp",
+            "quantity": "1.5",
+            "category": "Pantry"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 3765,
+      "input_tokens": 8657,
+      "output_tokens": 662
+    },
+    {
+      "id": 10,
+      "url": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Slow Cooker Lentil Soup",
+      "ingredients": [
+        {
+          "name": "butternut squash",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "carrots",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "potatoes",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "celery",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "green lentils",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "yellow split peas",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Pantry"
+        },
+        {
+          "name": "onion",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "garlic",
+          "unit": "cloves",
+          "quantity": "5",
+          "category": "Produce"
+        },
+        {
+          "name": "vegetable broth",
+          "unit": "cup",
+          "quantity": "9",
+          "category": "Pantry"
+        },
+        {
+          "name": "herbs de provence",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "salt",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "kale",
+          "unit": "cup",
+          "quantity": "2.5",
+          "category": "Produce"
+        },
+        {
+          "name": "parsley",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "olive oil",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "sherry",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Beverages"
+        },
+        {
+          "name": "red wine vinegar",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "lemon juice",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Slow Cooker Lentil Soup",
+        "ingredients": [
+          {
+            "name": "butternut squash",
+            "unit": "cup",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "carrots",
+            "unit": "cup",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "potatoes",
+            "unit": "cup",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "celery",
+            "unit": "cup",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "green lentils",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "yellow split peas",
+            "unit": "cup",
+            "quantity": "0.75",
+            "category": "Pantry"
+          },
+          {
+            "name": "onion",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "garlic",
+            "unit": "cloves",
+            "quantity": "5",
+            "category": "Produce"
+          },
+          {
+            "name": "vegetable broth",
+            "unit": "cup",
+            "quantity": "9",
+            "category": "Pantry"
+          },
+          {
+            "name": "herbs de provence",
+            "unit": "tsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "salt",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "kale",
+            "unit": "cup",
+            "quantity": "2.5",
+            "category": "Produce"
+          },
+          {
+            "name": "parsley",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "olive oil",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "sherry",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Beverages"
+          },
+          {
+            "name": "red wine vinegar",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "lemon juice",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 4797,
+      "input_tokens": 10130,
+      "output_tokens": 755
+    },
+    {
+      "id": 11,
+      "url": "https://therecipecritic.com/butter-garlic-herb-steak-foil-packets/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Butter Garlic Herb Steak Foil Packets",
+      "ingredients": [
+        {
+          "name": "red potatoes",
+          "unit": "lb",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "carrots",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "red bell pepper",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "green bell pepper",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "red onion",
+          "unit": "count",
+          "quantity": "0.5",
+          "category": "Produce"
+        },
+        {
+          "name": "salt",
+          "unit": "pinch",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "pepper",
+          "unit": "pinch",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "olive oil",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "top sirloin steak",
+          "unit": "lb",
+          "quantity": "1.5",
+          "category": "Meat"
+        },
+        {
+          "name": "butter",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Dairy"
+        },
+        {
+          "name": "parsley",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Produce"
+        },
+        {
+          "name": "garlic",
+          "unit": "cloves",
+          "quantity": "4",
+          "category": "Produce"
+        },
+        {
+          "name": "rosemary",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "thyme",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Produce"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Butter Garlic Herb Steak Foil Packets",
+        "ingredients": [
+          {
+            "name": "red potatoes",
+            "unit": "lb",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "carrots",
+            "unit": "count",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "red bell pepper",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "green bell pepper",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "red onion",
+            "unit": "count",
+            "quantity": "0.5",
+            "category": "Produce"
+          },
+          {
+            "name": "salt",
+            "unit": "pinch",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "pepper",
+            "unit": "pinch",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "olive oil",
+            "unit": "tbsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "top sirloin steak",
+            "unit": "lb",
+            "quantity": "1.5",
+            "category": "Meat"
+          },
+          {
+            "name": "butter",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Dairy"
+          },
+          {
+            "name": "parsley",
+            "unit": "cup",
+            "quantity": "0.25",
+            "category": "Produce"
+          },
+          {
+            "name": "garlic",
+            "unit": "cloves",
+            "quantity": "4",
+            "category": "Produce"
+          },
+          {
+            "name": "rosemary",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "thyme",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Produce"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 3739,
+      "input_tokens": 4526,
+      "output_tokens": 634
+    },
+    {
+      "id": 12,
+      "url": "https://www.recipetineats.com/chicken-marsala/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Chicken Marsala",
+      "ingredients": [
+        {
+          "name": "chicken breast",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Meat"
+        },
+        {
+          "name": "salt",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "black pepper",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "flour",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Bakery"
+        },
+        {
+          "name": "olive oil",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "butter",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Dairy"
+        },
+        {
+          "name": "shallots",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "garlic",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "mushrooms",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Produce"
+        },
+        {
+          "name": "marsala wine",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Beverages"
+        },
+        {
+          "name": "chicken stock",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Pantry"
+        },
+        {
+          "name": "cream",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Dairy"
+        },
+        {
+          "name": "salt",
+          "unit": "tsp",
+          "quantity": "0.25",
+          "category": "Pantry"
+        },
+        {
+          "name": "black pepper",
+          "unit": "tsp",
+          "quantity": "0.125",
+          "category": "Pantry"
+        },
+        {
+          "name": "parsley",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Produce"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Chicken Marsala",
+        "ingredients": [
+          {
+            "name": "chicken breast",
+            "unit": "count",
+            "quantity": "2",
+            "category": "Meat"
+          },
+          {
+            "name": "salt",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "black pepper",
+            "unit": "tsp",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "flour",
+            "unit": "cup",
+            "quantity": "0.25",
+            "category": "Bakery"
+          },
+          {
+            "name": "olive oil",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "butter",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Dairy"
+          },
+          {
+            "name": "shallots",
+            "unit": "count",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "garlic",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "mushrooms",
+            "unit": "cup",
+            "quantity": "2",
+            "category": "Produce"
+          },
+          {
+            "name": "marsala wine",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Beverages"
+          },
+          {
+            "name": "chicken stock",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Pantry"
+          },
+          {
+            "name": "cream",
+            "unit": "cup",
+            "quantity": "0.5",
+            "category": "Dairy"
+          },
+          {
+            "name": "salt",
+            "unit": "tsp",
+            "quantity": "0.25",
+            "category": "Pantry"
+          },
+          {
+            "name": "black pepper",
+            "unit": "tsp",
+            "quantity": "0.125",
+            "category": "Pantry"
+          },
+          {
+            "name": "parsley",
+            "unit": "tbsp",
+            "quantity": "1",
+            "category": "Produce"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 3771,
+      "input_tokens": 5582,
+      "output_tokens": 667
+    },
+    {
+      "id": 13,
+      "url": "https://www.skinnytaste.com/air-fryer-chicken-flautas/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Air Fryer Chicken Flautas",
+      "ingredients": [
+        {
+          "name": "chicken breast",
+          "unit": "oz",
+          "quantity": "12",
+          "category": "Meat"
+        },
+        {
+          "name": "lime",
+          "unit": "count",
+          "quantity": "0.5",
+          "category": "Produce"
+        },
+        {
+          "name": "garlic clove",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "cumin",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "green chilies",
+          "unit": "oz",
+          "quantity": "4",
+          "category": "Produce"
+        },
+        {
+          "name": "pepper jack cheese",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Dairy"
+        },
+        {
+          "name": "flour tortillas",
+          "unit": "count",
+          "quantity": "12",
+          "category": "Bakery"
+        },
+        {
+          "name": "olive oil spray",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Pantry"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Air Fryer Chicken Flautas",
+        "ingredients": [
+          {
+            "name": "chicken breast",
+            "unit": "oz",
+            "quantity": "12",
+            "category": "Meat"
+          },
+          {
+            "name": "lime",
+            "unit": "count",
+            "quantity": "0.5",
+            "category": "Produce"
+          },
+          {
+            "name": "garlic clove",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "cumin",
+            "unit": "tsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "green chilies",
+            "unit": "oz",
+            "quantity": "4",
+            "category": "Produce"
+          },
+          {
+            "name": "pepper jack cheese",
+            "unit": "cup",
+            "quantity": "1",
+            "category": "Dairy"
+          },
+          {
+            "name": "flour tortillas",
+            "unit": "count",
+            "quantity": "12",
+            "category": "Bakery"
+          },
+          {
+            "name": "olive oil spray",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Pantry"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 2178,
+      "input_tokens": 3478,
+      "output_tokens": 377
+    },
+    {
+      "id": 14,
+      "url": "https://www.budgetbytes.com/dragon-noodles/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Spicy Sriracha Noodles",
+      "ingredients": [
+        {
+          "name": "lo mein noodles",
+          "unit": "oz",
+          "quantity": "4",
+          "category": "Pantry"
+        },
+        {
+          "name": "butter",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Dairy"
+        },
+        {
+          "name": "crushed red pepper",
+          "unit": "tsp",
+          "quantity": "0.25",
+          "category": "Pantry"
+        },
+        {
+          "name": "eggs",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Dairy"
+        },
+        {
+          "name": "brown sugar",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "soy sauce",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Pantry"
+        },
+        {
+          "name": "sriracha",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Pantry"
+        },
+        {
+          "name": "cilantro",
+          "unit": "handful",
+          "quantity": "1",
+          "category": "Produce"
+        },
+        {
+          "name": "green onion",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Produce"
+        }
+      ],
+      "raw_response": {
+        "is_recipe": true,
+        "title": "Spicy Sriracha Noodles",
+        "ingredients": [
+          {
+            "name": "lo mein noodles",
+            "unit": "oz",
+            "quantity": "4",
+            "category": "Pantry"
+          },
+          {
+            "name": "butter",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Dairy"
+          },
+          {
+            "name": "crushed red pepper",
+            "unit": "tsp",
+            "quantity": "0.25",
+            "category": "Pantry"
+          },
+          {
+            "name": "eggs",
+            "unit": "count",
+            "quantity": "2",
+            "category": "Dairy"
+          },
+          {
+            "name": "brown sugar",
+            "unit": "tbsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "soy sauce",
+            "unit": "tbsp",
+            "quantity": "1",
+            "category": "Pantry"
+          },
+          {
+            "name": "sriracha",
+            "unit": "tbsp",
+            "quantity": "2",
+            "category": "Pantry"
+          },
+          {
+            "name": "cilantro",
+            "unit": "handful",
+            "quantity": "1",
+            "category": "Produce"
+          },
+          {
+            "name": "green onion",
+            "unit": "count",
+            "quantity": "1",
+            "category": "Produce"
+          }
+        ]
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 2704,
+      "input_tokens": 3696,
+      "output_tokens": 427
+    },
+    {
+      "id": 15,
+      "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "FetchFailed:HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://damndelicious.net/2025/09/12/chicken-divan/",
+      "latency_ms": 163,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    {
+      "id": 16,
+      "url": "https://www.pinterest.com/pin/3940717959896374/",
+      "source_type": "non_standard",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": {
+        "is_recipe": false,
+        "reason": "Page content shows a login/sign-up interface with no recipe information present"
+      },
+      "error_type": "ModelDeclaredNotARecipe",
+      "error_message": "Page content shows a login/sign-up interface with no recipe information present",
+      "latency_ms": 800,
+      "input_tokens": 491,
+      "output_tokens": 42
+    },
+    {
+      "id": 17,
+      "url": "https://www.instagram.com/p/Cz8mYBcOJqI/",
+      "source_type": "non_standard",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": {
+        "is_recipe": false,
+        "reason": "Content is from Instagram with no recipe content provided"
+      },
+      "error_type": "ModelDeclaredNotARecipe",
+      "error_message": "Content is from Instagram with no recipe content provided",
+      "latency_ms": 798,
+      "input_tokens": 454,
+      "output_tokens": 36
+    }
+  ]
+}
