@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 
 class InviteManagementScreen extends StatefulWidget {
@@ -22,22 +24,36 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isNotEmpty) {
-        _myMembership = memberships[0];
-        _household = memberships[0]['households'];
+      // Batch 7a-ii — MembershipHelper so `_isAdmin` reflects the active
+      // member's role. Pre-fix, a kid session saw `_isAdmin = true` because
+      // `_myMembership` coerced to the parent admin's row; the kid-facing UI
+      // would then show the "Generate Invite" FAB. RLS catches actual write
+      // attempts, but the misleading UI is what this migration corrects.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership != null) {
+        _myMembership = membership;
+        _household = membership['households'];
       }
 
       if (_household != null) {
@@ -49,10 +65,11 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
 
         setState(() => _invites = List<Map<String, dynamic>>.from(invites));
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('invite_management load failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load invites.')),
+          SnackBar(content: Text('Could not load invites: $e')),
         );
       }
     } finally {

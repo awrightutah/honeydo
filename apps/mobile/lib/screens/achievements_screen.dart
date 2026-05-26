@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 /// Achievements screen showing earned and locked badges.
 class AchievementsScreen extends StatefulWidget {
@@ -32,26 +34,37 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-ii — MembershipHelper so kid sees their own earned badges,
+      // not the parent admin's. The earned filter joins on `member_id`.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
       final memberId = _myMembership!['id'];
 
@@ -67,6 +80,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('achievements load failed: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

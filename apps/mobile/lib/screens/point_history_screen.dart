@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 /// Point transaction history screen showing all point activity.
 class PointHistoryScreen extends StatefulWidget {
@@ -21,26 +23,40 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-ii — PRIVACY FIX: pre-migration, a kid session would resolve
+      // `_myMembership` to the parent admin's row, so the transaction filter
+      // `eq('member_id', memberId)` returned the ADMIN's full point history.
+      // Kid sub_profiles saw all of the parent admin's earnings, spends, and
+      // adjustments. After: kid sees only their own.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
       final memberId = _myMembership!['id'];
 
@@ -61,6 +77,7 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('point_history load failed: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

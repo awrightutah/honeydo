@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 /// Feedback screen for submitting feature requests and bug reports.
 class FeedbackScreen extends StatefulWidget {
@@ -23,31 +25,36 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   void initState() {
     super.initState();
     _loadFeedback();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
+  void _onActiveMemberChanged() {
+    if (mounted) _loadFeedback();
+  }
+
   Future<void> _loadFeedback() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('household_id')
-          .eq('auth_user_id', user.id)
-          .eq('is_active', true)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-ii — MembershipHelper. The list itself is household-scoped
+      // so the legacy pattern would have returned correct rows, but using the
+      // helper here keeps the migration consistent with `_submitFeedback`
+      // (which needs the active member's id for write attribution).
+      final membership = await MembershipHelper.loadActiveMembership();
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      final householdId = memberships[0]['household_id'];
+      final householdId = membership['household_id'];
 
       final data = await Supabase.instance.client
           .from('feedback_requests')
@@ -57,6 +64,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
       _feedbackList = List<Map<String, dynamic>>.from(data);
     } catch (e) {
+      debugPrint('feedback load failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading feedback: $e')),
@@ -71,18 +79,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('id, household_id')
-          .eq('auth_user_id', user.id)
-          .eq('is_active', true)
-          .limit(1);
+      // Batch 7a-ii — write attribution fix. Pre-migration, kid feedback was
+      // attributed to the parent admin's `submitted_by_member_id`.
+      final membership = await MembershipHelper.loadActiveMembership();
+      if (membership == null) return;
 
-      if (memberships.isEmpty) return;
-
-      final memberId = memberships[0]['id'];
-      final householdId = memberships[0]['household_id'];
+      final memberId = membership['id'];
+      final householdId = membership['household_id'];
 
       await Supabase.instance.client.from('feedback_requests').insert({
         'household_id': householdId,
@@ -107,8 +110,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         );
       }
 
-      _loadFeedback();
+      await _loadFeedback();
     } catch (e) {
+      debugPrint('feedback submit failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error submitting feedback: $e')),
