@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../services/active_member_service.dart';
+import '../services/realtime_service.dart';
 import '../utils/membership.dart';
 import '../utils/permissions.dart';
 import '../widgets/chore_photo_viewer.dart';
@@ -45,13 +46,24 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     _loadData();
     ActiveMemberService.instance.activeMemberId
         .addListener(_onActiveMemberChanged);
+    // Batch 6b — live-refresh when a kid submits a meal request from another
+    // device. Chores/wishlist still rely on navigation-return refresh; that
+    // hardening is captured for a future polish pass.
+    RealtimeService.instance.mealRequestsVersion
+        .addListener(_onRealtimeUpdate);
   }
 
   @override
   void dispose() {
     ActiveMemberService.instance.activeMemberId
         .removeListener(_onActiveMemberChanged);
+    RealtimeService.instance.mealRequestsVersion
+        .removeListener(_onRealtimeUpdate);
     super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) _loadData();
   }
 
   /// If admin switches to a kid mid-screen, pop back to home (the screen is

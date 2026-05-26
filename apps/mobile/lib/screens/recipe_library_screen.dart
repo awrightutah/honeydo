@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
+import '../utils/permissions.dart';
 import 'recipe_detail_screen.dart';
 
 /// Full recipe library screen with household recipe management,
@@ -17,16 +20,21 @@ class RecipeLibraryScreen extends StatefulWidget {
 }
 
 class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
   late TabController _tabController;
+  int _tabCount = 2;
   Map<String, dynamic>? _household;
   Map<String, dynamic>? _myMembership;
   List<Map<String, dynamic>> _householdRecipes = [];
   List<Map<String, dynamic>> _masterRecipes = [];
   List<Map<String, dynamic>> _shoppingLists = [];
+  // Batch 6b — kid-only "My Requests" tab. Populated only when the active
+  // membership is a kid; otherwise the tab itself is hidden and this stays
+  // empty.
+  List<Map<String, dynamic>> _myMealRequests = [];
   bool _isLoading = true;
   String _searchQuery = '';
   String? _selectedCuisine;
@@ -37,14 +45,24 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _tabCount, vsync: this);
     _loadData();
     RealtimeService.instance.recipesVersion.addListener(_onRealtimeUpdate);
+    // Batch 6b — meal_requests realtime ticks refresh the kid's "My Requests"
+    // tab when the admin decides on the kid's pending row from another device.
+    RealtimeService.instance.mealRequestsVersion.addListener(_onRealtimeUpdate);
+    // Reload when the user switches between profiles so the kid-only tab
+    // appears / disappears appropriately.
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
     RealtimeService.instance.recipesVersion.removeListener(_onRealtimeUpdate);
+    RealtimeService.instance.mealRequestsVersion.removeListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -53,25 +71,46 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
     if (mounted) _loadData();
   }
 
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
+  }
+
+  /// Recreates _tabController if the desired tab count changed. Called from
+  /// _loadData after the active membership is known. Length must be set at
+  /// creation time — TabController doesn't support live resize.
+  void _syncTabCount(int desired) {
+    if (desired == _tabCount) return;
+    final oldIndex = _tabController.index;
+    _tabController.dispose();
+    _tabCount = desired;
+    _tabController = TabController(
+      length: _tabCount,
+      vsync: this,
+      initialIndex: oldIndex.clamp(0, _tabCount - 1),
+    );
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
+      // Batch 6b — MembershipHelper resolves to the active kid sub_profile if
+      // one is selected; otherwise to the JWT holder's adult row. Critical for
+      // the kid-only "My Requests" tab to gate on a real kid membership and
+      // for the meal_requests query to filter on the correct member id.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      if (memberships.isEmpty) {
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
+      final isKid = Permissions.isKid(membership);
 
       // Load household recipes
       final recipes = await Supabase.instance.client
@@ -94,14 +133,39 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
           .eq('household_id', householdId)
           .eq('is_active', true);
 
+      // Batch 6b — load this kid's meal requests (all statuses) for the
+      // "My Requests" tab. Only run for kid sessions to keep the network
+      // chatter off the adult path.
+      List<Map<String, dynamic>> myRequests = [];
+      if (isKid) {
+        try {
+          final reqs = await Supabase.instance.client
+              .from('meal_requests')
+              .select(
+                  'id, status, decided_at, decided_note, requested_for_date, '
+                  'meal_type, created_at, '
+                  'household_recipes!meal_requests_recipe_id_fkey(id, title, image_url)')
+              .eq('requested_by_member_id', membership['id'])
+              .order('created_at', ascending: false);
+          myRequests = List<Map<String, dynamic>>.from(reqs);
+        } catch (e) {
+          debugPrint('load my meal requests failed: $e');
+          // Soft failure — leave the tab empty rather than blocking the whole
+          // screen on a meal_requests query problem.
+        }
+      }
+
       if (!mounted) return;
+      _syncTabCount(isKid ? 3 : 2);
       setState(() {
         _householdRecipes = List<Map<String, dynamic>>.from(recipes);
         _masterRecipes = List<Map<String, dynamic>>.from(master);
         _shoppingLists = List<Map<String, dynamic>>.from(lists);
+        _myMealRequests = myRequests;
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('recipe_library load failed: $e');
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -990,14 +1054,20 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    // Batch 6b — kid sessions get an extra "My Requests" tab as the 3rd tab.
+    // _tabCount is synced inside _loadData via _syncTabCount() so the tab
+    // bar's child count always matches the controller's length.
+    final showRequestsTab = _tabCount == 3;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recipe Library 📚'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'My Recipes'),
-            Tab(text: 'Browse Library'),
+          isScrollable: showRequestsTab,
+          tabs: [
+            const Tab(text: 'My Recipes'),
+            const Tab(text: 'Browse Library'),
+            if (showRequestsTab) const Tab(text: 'My Requests'),
           ],
         ),
       ),
@@ -1076,6 +1146,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
               children: [
                 _buildMyRecipesTab(),
                 _buildBrowseLibraryTab(),
+                if (showRequestsTab) _buildMyRequestsTab(),
               ],
             ),
           ),
@@ -1404,4 +1475,226 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
       },
     );
   }
+
+  // ─── Batch 6b: kid's "My Requests" tab ─────────────────────────────────
+
+  Widget _buildMyRequestsTab() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_myMealRequests.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No meal requests yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Tap 'Request this meal' on any recipe to start.",
+                style: TextStyle(color: Colors.grey[500]),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _myMealRequests.length,
+        itemBuilder: (context, index) {
+          final req = _myMealRequests[index];
+          return _MyRequestCard(
+            key: ValueKey(req['id']),
+            request: req,
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Single row in the kid's "My Requests" tab. Stateless — admin decision is
+/// the only thing that flips status; the kid sees decisions land via the
+/// mealRequestsVersion realtime listener triggering _loadData on the parent.
+class _MyRequestCard extends StatelessWidget {
+  const _MyRequestCard({super.key, required this.request});
+  final Map<String, dynamic> request;
+
+  static const _mealTypeEmojis = {
+    'breakfast': '🌅',
+    'lunch': '☀️',
+    'dinner': '🌙',
+    'snack': '🍎',
+    'other': '🍽️',
+  };
+
+  String _formatRelative(String? iso) {
+    if (iso == null) return '';
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays == 1) return 'yesterday';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return '${dt.month}/${dt.day}/${dt.year}';
+    } catch (_) {
+      return iso;
+    }
+  }
+
+  String _formatScheduled(String? iso) {
+    if (iso == null) return '';
+    try {
+      final dt = DateTime.parse(iso);
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      return '${months[dt.month - 1]} ${dt.day}';
+    } catch (_) {
+      return iso;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recipe = request['household_recipes'] as Map<String, dynamic>?;
+    final title = recipe?['title'] as String? ?? 'Recipe';
+    final imageUrl = recipe?['image_url'] as String?;
+    final status = request['status'] as String? ?? 'pending';
+    final note = (request['decided_note'] as String?)?.trim();
+
+    final pillColor = switch (status) {
+      'approved' => AppColors.grassGreen,
+      'denied' => AppColors.coral,
+      _ => AppColors.honeyGold,
+    };
+    final pillText = switch (status) {
+      'approved' => 'Approved',
+      'denied' => 'Denied',
+      _ => 'Pending',
+    };
+
+    String secondLine;
+    if (status == 'approved') {
+      final scheduled = _formatScheduled(
+        request['requested_for_date'] as String?,
+      );
+      final mealType = request['meal_type'] as String?;
+      final emoji = _mealTypeEmojis[mealType] ?? '🍽️';
+      final mealLabel = mealType == null
+          ? ''
+          : '${mealType[0].toUpperCase()}${mealType.substring(1)}';
+      secondLine = scheduled.isEmpty && mealLabel.isEmpty
+          ? 'On the meal plan'
+          : 'Scheduled for ${[scheduled, '$emoji $mealLabel']
+              .where((s) => s.trim().isNotEmpty)
+              .join(' · ')}';
+    } else if (status == 'denied') {
+      secondLine = (note != null && note.isNotEmpty)
+          ? '"$note"'
+          : 'No reason given';
+    } else {
+      secondLine = 'Submitted ${_formatRelative(request['created_at'] as String?)}';
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: imageUrl != null
+                  ? Image.network(
+                      imageUrl,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _thumbFallback(),
+                    )
+                  : _thumbFallback(),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: pillColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          pillText,
+                          style: TextStyle(
+                            color: pillColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    secondLine,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _thumbFallback() => Container(
+        width: 64,
+        height: 64,
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: const Text('🍯', style: TextStyle(fontSize: 28)),
+      );
 }

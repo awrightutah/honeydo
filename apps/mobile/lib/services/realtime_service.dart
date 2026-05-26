@@ -22,6 +22,7 @@ class RealtimeService {
   final ValueNotifier<int> pointsVersion = ValueNotifier(0);
   final ValueNotifier<int> rewardsVersion = ValueNotifier(0);
   final ValueNotifier<int> announcementsVersion = ValueNotifier(0);
+  final ValueNotifier<int> mealRequestsVersion = ValueNotifier(0);
 
   /// Subscribe to all realtime channels for the given household.
   void subscribe(String householdId) {
@@ -135,6 +136,19 @@ class RealtimeService {
       table: 'announcements',
     );
 
+    // Meal requests
+    _channel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      callback: (_) => mealRequestsVersion.value++,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'household_id',
+        value: householdId,
+      ),
+      schema: 'public',
+      table: 'meal_requests',
+    );
+
     _channel!.subscribe();
   }
 
@@ -158,5 +172,6 @@ class RealtimeService {
     pointsVersion.value = 0;
     rewardsVersion.value = 0;
     announcementsVersion.value = 0;
+    mealRequestsVersion.value = 0;
   }
 }

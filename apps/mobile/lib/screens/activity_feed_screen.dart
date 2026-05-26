@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
 
 /// Activity feed screen showing recent household activity.
 class ActivityFeedScreen extends StatefulWidget {
@@ -20,26 +22,39 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // Batch 6b — reload when the user switches to a kid/admin profile so the
+    // feed reflects the active perspective (kid sub_profile vs adult auth row).
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
+      // Batch 6b — use MembershipHelper so kid sessions resolve to the kid
+      // sub_profile row instead of silently coercing to the parent admin.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _householdMember = memberships[0];
+      _householdMember = membership;
       final householdId = _householdMember!['household_id'];
 
       // Build activity feed from multiple sources
@@ -154,6 +169,38 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
         }
       } catch (_) {}
 
+      // 6. Meal request decisions (Batch 6b). Only decided rows surface; a
+      // pending request is not yet an "activity." Joins recipe (title) and
+      // the requesting member (kid name + kind) so the entry can render as
+      // "Randi's request for Pad Thai was approved/denied".
+      try {
+        final mealReqs = await Supabase.instance.client
+            .from('meal_requests')
+            .select(
+                'id, decided_at, status, decided_note, '
+                'household_recipes!meal_requests_recipe_id_fkey(title), '
+                'household_members!meal_requests_requested_by_member_id_fkey(display_name, kind)')
+            .eq('household_id', householdId)
+            .neq('status', 'pending')
+            .order('decided_at', ascending: false)
+            .limit(20);
+
+        for (final m in mealReqs) {
+          allActivities.add({
+            'type': 'meal_request_decided',
+            'timestamp': m['decided_at'],
+            'member_name':
+                m['household_members']?['display_name'] ?? 'Someone',
+            'member_kind':
+                m['household_members']?['kind'] ?? 'adult_auth_user',
+            'recipe_title': m['household_recipes']?['title'] ?? 'a meal',
+            'status': m['status'],
+            'decided_note': m['decided_note'],
+            'id': m['id'],
+          });
+        }
+      } catch (_) {}
+
       // Sort by timestamp
       allActivities.sort((a, b) {
         final aTime = DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime.now();
@@ -210,6 +257,8 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
                           _buildFilterChip('points', 'Points', Icons.star),
                           const SizedBox(width: 8),
                           _buildFilterChip('reward_redeemed', 'Rewards', Icons.card_giftcard),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('meal_request_decided', 'Meals', Icons.restaurant_menu),
                           const SizedBox(width: 8),
                           _buildFilterChip('member_joined', 'Members', Icons.person_add),
                         ],
@@ -390,6 +439,19 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           ),
           child: const Icon(Icons.person_add, color: Colors.purple, size: 20),
         ),
+      'meal_request_decided' => () {
+          final approved = activity['status'] == 'approved';
+          final color = approved ? AppColors.grassGreen : AppColors.coral;
+          return Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.restaurant_menu, color: color, size: 20),
+          );
+        }(),
       _ => Container(
           width: 40,
           height: 40,
@@ -413,6 +475,18 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
               : ' had ${activity['amount']} points adjusted',
       'reward_redeemed' => ' redeemed "${activity['reward_name']}" (-${activity['points_cost']} pts)',
       'member_joined' => ' joined the household',
+      'meal_request_decided' => () {
+          final approved = activity['status'] == 'approved';
+          final title = activity['recipe_title'] ?? 'a meal';
+          final note = (activity['decided_note'] as String?)?.trim();
+          if (approved) {
+            return ' had "$title" approved for the meal plan';
+          }
+          if (note != null && note.isNotEmpty) {
+            return ' had "$title" denied — "$note"';
+          }
+          return ' had "$title" denied';
+        }(),
       _ => ' did something',
     };
   }

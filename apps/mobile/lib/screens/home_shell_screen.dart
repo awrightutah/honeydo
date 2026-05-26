@@ -66,8 +66,11 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     // Listen for announcement changes to refresh the banner
     RealtimeService.instance.announcementsVersion.addListener(_onAnnouncementChanged);
     // Batch 5b-i — chores/shopping ticks refresh the Approvals badge count.
+    // Batch 6b — meal_requests ticks join the same fan-in so a kid submitting
+    // on another device live-updates the admin's badge.
     RealtimeService.instance.choresVersion.addListener(_onApprovalsSourceChanged);
     RealtimeService.instance.shoppingVersion.addListener(_onApprovalsSourceChanged);
+    RealtimeService.instance.mealRequestsVersion.addListener(_onApprovalsSourceChanged);
     ActiveMemberService.instance.activeMemberId.addListener(_onActiveMemberChanged);
   }
 
@@ -77,6 +80,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     RealtimeService.instance.announcementsVersion.removeListener(_onAnnouncementChanged);
     RealtimeService.instance.choresVersion.removeListener(_onApprovalsSourceChanged);
     RealtimeService.instance.shoppingVersion.removeListener(_onApprovalsSourceChanged);
+    RealtimeService.instance.mealRequestsVersion.removeListener(_onApprovalsSourceChanged);
     ActiveMemberService.instance.activeMemberId.removeListener(_onActiveMemberChanged);
     super.dispose();
   }
@@ -116,12 +120,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       // Three parallel id-only queries (chores + shopping wishlist + meal
       // requests). At current scale (~few items) this is cheap; switch to
       // `.count()` syntax later if volume grows.
-      //
-      // Batch 6a — RealtimeService doesn't expose a mealRequestsVersion
-      // notifier today, so meal request count freshness relies on initial
-      // load + navigation-return refresh (the .then on the AppBar
-      // IconButton's Navigator.push). Wire a real listener when Batch 6b
-      // adds the recent-requests UI or Batch 6c adds push notifications.
       final results = await Future.wait([
         Supabase.instance.client
             .from('chores')
