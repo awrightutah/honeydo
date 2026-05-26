@@ -326,11 +326,12 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     ),
                   ),
                   ),
-                IconButton(
-                  icon: Icon(_myMembership?['kind'] == 'sub_profile' ? Icons.child_care_rounded : Icons.switch_account_rounded),
-                  onPressed: _showProfileSwitcher,
-                  tooltip: 'Switch profile',
-                ),
+                // Batch 7b-iii — Active-member identity indicator. Replaces
+                // the prior baby/switch-account IconButton. Shows the active
+                // member's avatar + first name so a parent helping their kid
+                // can tell at a glance which profile is operating. Same tap
+                // handler (_showProfileSwitcher) as the old icon.
+                _buildActiveMemberIndicator(),
                 IconButton(
                   icon: const Icon(Icons.search_rounded),
                   onPressed: () => _navigateToSearch(),
@@ -449,6 +450,85 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
   void _navigateToPointHistory() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const PointHistoryScreen()),
+    );
+  }
+
+  // ─── Batch 7b-iii: active member identity indicator ────────────────────
+
+  /// First name parsed from `display_name`. Splits on whitespace and takes the
+  /// first token; returns the trimmed name unchanged if it has no spaces, or
+  /// '?' if the field is empty/null.
+  String _firstName(Map<String, dynamic>? membership) {
+    final displayName = (membership?['display_name'] as String?)?.trim() ?? '';
+    if (displayName.isEmpty) return '?';
+    final parts = displayName.split(RegExp(r'\s+'));
+    return parts.first;
+  }
+
+  /// First letter of `display_name`, uppercased, for the initials fallback
+  /// avatar. Returns '?' if the field is empty/null.
+  String _firstLetter(Map<String, dynamic>? membership) {
+    final displayName = (membership?['display_name'] as String?)?.trim() ?? '';
+    if (displayName.isEmpty) return '?';
+    return displayName.substring(0, 1).toUpperCase();
+  }
+
+  /// AppBar widget that always shows whose profile is active. Avatar (image
+  /// or initials) + first name in a horizontal Row, tappable to open the
+  /// profile switcher (same handler as the prior baby IconButton).
+  Widget _buildActiveMemberIndicator() {
+    final firstName = _firstName(_myMembership);
+    final firstLetter = _firstLetter(_myMembership);
+    final avatarUrl = _myMembership?['avatar_url'] as String?;
+    final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: InkWell(
+        onTap: _showProfileSwitcher,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.honeyGold,
+                // backgroundImage falls through to the child slot if null;
+                // when the URL is set but fails to load there is no error
+                // fallback today (the circle renders honey-gold with no
+                // initials). Flag as a future polish if it becomes annoying
+                // in practice — most users will have working URLs or none.
+                backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+                child: hasAvatar
+                    ? null
+                    : Text(
+                        firstLetter,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 80),
+                child: Text(
+                  firstName,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
