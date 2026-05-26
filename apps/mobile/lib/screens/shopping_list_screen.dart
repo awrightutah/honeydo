@@ -554,7 +554,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.honeyGold.withOpacity(.2),
+                            color: AppColors.honeyGold.withValues(alpha:.2),
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: Text('${unpurchasedItems.length}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
@@ -586,7 +586,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.grassGreen.withOpacity(.2),
+                            color: AppColors.grassGreen.withValues(alpha:.2),
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: Text('${purchasedItems.length}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
@@ -647,7 +647,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(.12),
+                      color: color.withValues(alpha:.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(icon, size: 16, color: color),
@@ -665,7 +665,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(.1),
+                      color: color.withValues(alpha:.1),
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Text(
@@ -727,7 +727,7 @@ class _ShoppingItemCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          color: AppColors.coral.withOpacity(.1),
+          color: AppColors.coral.withValues(alpha:.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.delete_outline_rounded, color: AppColors.coral),

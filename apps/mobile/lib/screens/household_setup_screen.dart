@@ -260,7 +260,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: AppColors.honeyGold.withOpacity(.18),
+            color: AppColors.honeyGold.withValues(alpha:.18),
             shape: BoxShape.circle,
           ),
           child: const Center(child: Text('🏠', style: TextStyle(fontSize: 52))),
@@ -351,7 +351,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _selectedColor.withOpacity(.2),
+                      color: _selectedColor.withValues(alpha:.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(child: Text('🏠', style: const TextStyle(fontSize: 28))),
@@ -413,7 +413,7 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: AppColors.skyBlue.withOpacity(.18),
+            color: AppColors.skyBlue.withValues(alpha:.18),
             shape: BoxShape.circle,
           ),
           child: const Center(child: Text('✉️', style: TextStyle(fontSize: 40))),

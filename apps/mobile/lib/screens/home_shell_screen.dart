@@ -228,7 +228,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     label: 'Pinned announcement: ${_pinnedAnnouncement!['title']}. Tap to view.',
                     button: true,
                     child: Material(
-                    color: AppColors.honeyGold.withOpacity(.15),
+                    color: AppColors.honeyGold.withValues(alpha:.15),
                     child: InkWell(
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()));
@@ -317,7 +317,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                         ),
                       ),
                       style: TextButton.styleFrom(
-                        backgroundColor: AppColors.honeyGold.withOpacity(.1),
+                        backgroundColor: AppColors.honeyGold.withValues(alpha:.1),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         minimumSize: Size.zero,
@@ -825,7 +825,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: rank <= 3 ? AppColors.honeyGold.withOpacity(.2) : Colors.grey.withOpacity(.1),
+                              backgroundColor: rank <= 3 ? AppColors.honeyGold.withValues(alpha:.2) : Colors.grey.withValues(alpha:.1),
                               child: Text(
                                 rankEmoji.isNotEmpty ? rankEmoji : '$rank',
                                 style: TextStyle(fontSize: rankEmoji.isNotEmpty ? 22 : 14, fontWeight: FontWeight.w800),
@@ -845,7 +845,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: AppColors.honeyGold.withOpacity(.15),
+                                color: AppColors.honeyGold.withValues(alpha:.15),
                                 borderRadius: BorderRadius.circular(100),
                               ),
                               child: Text('$points pts', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.honeyGold)),

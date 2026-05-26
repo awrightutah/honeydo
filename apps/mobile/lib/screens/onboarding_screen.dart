@@ -194,7 +194,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
-                                color: (isLastPage ? AppColors.grassGreen : step.gradient[0]).withOpacity(.3),
+                                color: (isLastPage ? AppColors.grassGreen : step.gradient[0]).withValues(alpha:.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -287,16 +287,16 @@ class _OnboardingPage extends StatelessWidget {
             height: size.width * 0.45,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: step.gradient.map((c) => c.withOpacity(.15)).toList(),
+                colors: step.gradient.map((c) => c.withValues(alpha:.15)).toList(),
               ),
               shape: BoxShape.circle,
               border: Border.all(
-                color: step.gradient[0].withOpacity(.3),
+                color: step.gradient[0].withValues(alpha:.3),
                 width: 3,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: step.gradient[0].withOpacity(.1),
+                  color: step.gradient[0].withValues(alpha:.1),
                   blurRadius: 24,
                   spreadRadius: 8,
                 ),
@@ -397,9 +397,9 @@ class _FeatureChips extends StatelessWidget {
       children: chips.map((chip) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: chip.color.withOpacity(.1),
+          color: chip.color.withValues(alpha:.1),
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: chip.color.withOpacity(.2)),
+          border: Border.all(color: chip.color.withValues(alpha:.2)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

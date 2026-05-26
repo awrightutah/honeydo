@@ -229,7 +229,7 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
                               margin: const EdgeInsets.only(top: 4),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.honeyGold.withOpacity(.2),
+                                color: AppColors.honeyGold.withValues(alpha:.2),
                                 borderRadius: BorderRadius.circular(100),
                               ),
                               child: const Text('This week', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
@@ -350,7 +350,7 @@ class _DayCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.honeyGold.withOpacity(.2),
+                            color: AppColors.honeyGold.withValues(alpha:.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text('Today', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.honeyGold)),
@@ -369,7 +369,7 @@ class _DayCard extends StatelessWidget {
                   onPressed: onAddCustom,
                   tooltip: 'Add meal',
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.honeyGold.withOpacity(.1),
+                    backgroundColor: AppColors.honeyGold.withValues(alpha:.1),
                   ),
                 ),
               ],
@@ -444,7 +444,7 @@ class _MealSlot extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
-          color: AppColors.coral.withOpacity(.1),
+          color: AppColors.coral.withValues(alpha:.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.delete_outline_rounded, color: AppColors.coral),
@@ -467,9 +467,9 @@ class _MealSlot extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: color.withOpacity(.08),
+            color: color.withValues(alpha:.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(.2)),
+            border: Border.all(color: color.withValues(alpha:.2)),
           ),
           child: Row(
             children: [
@@ -575,7 +575,7 @@ class _EmptyMealSlot extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withOpacity(.15), style: BorderStyle.solid),
+          border: Border.all(color: Colors.grey.withValues(alpha:.15), style: BorderStyle.solid),
         ),
         child: Row(
           children: [

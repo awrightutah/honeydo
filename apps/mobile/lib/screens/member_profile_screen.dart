@@ -246,7 +246,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.honeyGold.withOpacity(.3),
+            color: AppColors.honeyGold.withValues(alpha:.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -277,7 +277,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.25),
+                  color: Colors.white.withValues(alpha:.25),
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Text(
@@ -289,7 +289,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.25),
+                  color: Colors.white.withValues(alpha:.25),
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Text(
@@ -340,9 +340,9 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(.1),
+          color: color.withValues(alpha:.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(.3)),
+          border: Border.all(color: color.withValues(alpha:.3)),
         ),
         child: Column(
           children: [
@@ -378,9 +378,9 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.honeyGold.withOpacity(.1),
+            color: AppColors.honeyGold.withValues(alpha:.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.honeyGold.withOpacity(.3)),
+            border: Border.all(color: AppColors.honeyGold.withValues(alpha:.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -462,7 +462,7 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.honeyGold.withOpacity(.15),
+                  color: AppColors.honeyGold.withValues(alpha:.15),
                   borderRadius: BorderRadius.circular(100),
                 ),
                 child: Text('$points pts', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.honeyGold)),

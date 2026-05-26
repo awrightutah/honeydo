@@ -177,7 +177,7 @@ class _FeatureTourOverlayState extends State<FeatureTourOverlay>
     return FadeTransition(
       opacity: _fadeIn,
       child: Container(
-        color: Colors.black.withOpacity(0.75),
+        color: Colors.black.withValues(alpha:0.75),
         child: SafeArea(
           child: Column(
             children: [
@@ -201,7 +201,7 @@ class _FeatureTourOverlayState extends State<FeatureTourOverlay>
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: step.color.withOpacity(0.15),
+                            color: step.color.withValues(alpha:0.15),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(step.icon, size: 32, color: step.color),

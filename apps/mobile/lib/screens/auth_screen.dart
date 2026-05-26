@@ -90,7 +90,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: AppColors.honeyGold.withOpacity(.18),
+                      color: AppColors.honeyGold.withValues(alpha:.18),
                       shape: BoxShape.circle,
                     ),
                     child: const Center(child: Text('🐝', style: TextStyle(fontSize: 52))),

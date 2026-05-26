@@ -418,7 +418,7 @@ class _ChoreTemplatesScreenState extends State<ChoreTemplatesScreen> {
                         selected: _selectedCategory == null,
                         onSelected: (_) => setState(() => _selectedCategory = null),
                         backgroundColor: Colors.grey.shade100,
-                        selectedColor: AppColors.honeyGold.withOpacity(.2),
+                        selectedColor: AppColors.honeyGold.withValues(alpha:.2),
                         checkmarkColor: AppColors.honeyGold,
                       ),
                     ),
@@ -429,7 +429,7 @@ class _ChoreTemplatesScreenState extends State<ChoreTemplatesScreen> {
                         selected: _selectedCategory == cat,
                         onSelected: (_) => setState(() => _selectedCategory = _selectedCategory == cat ? null : cat),
                         backgroundColor: Colors.grey.shade100,
-                        selectedColor: AppColors.honeyGold.withOpacity(.2),
+                        selectedColor: AppColors.honeyGold.withValues(alpha:.2),
                         checkmarkColor: AppColors.honeyGold,
                       ),
                     )),
@@ -576,7 +576,7 @@ class _TemplateCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: difficultyColor.withOpacity(.1),
+                  color: difficultyColor.withValues(alpha:.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -603,7 +603,7 @@ class _TemplateCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
-                              color: AppColors.skyBlue.withOpacity(.15),
+                              color: AppColors.skyBlue.withValues(alpha:.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text('Custom', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.skyBlue)),
@@ -625,7 +625,7 @@ class _TemplateCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: difficultyColor.withOpacity(.15),
+                            color: difficultyColor.withValues(alpha:.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -733,7 +733,7 @@ class _QuickAssignDialogState extends State<_QuickAssignDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.honeyGold.withOpacity(.1),
+              color: AppColors.honeyGold.withValues(alpha:.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(

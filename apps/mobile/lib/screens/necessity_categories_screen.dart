@@ -229,7 +229,7 @@ class _NecessityCategoriesScreenState extends State<NecessityCategoriesScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.honeyGold.withOpacity(0.1),
+                      color: AppColors.honeyGold.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

@@ -242,7 +242,7 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.honeyGold.withOpacity(.3),
+                            color: AppColors.honeyGold.withValues(alpha:.3),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -435,7 +435,7 @@ class _ActiveInviteCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.15),
+        color: Colors.white.withValues(alpha:.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white24),
       ),
@@ -594,7 +594,7 @@ class _InviteListCard extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(.1),
+            color: statusColor.withValues(alpha:.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(statusIcon, color: statusColor, size: 22),
@@ -623,7 +623,7 @@ class _InviteListCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(.15),
+                color: statusColor.withValues(alpha:.15),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),

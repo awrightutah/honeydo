@@ -131,7 +131,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isPremium
-              ? [AppColors.honeyGold, AppColors.honeyGold.withOpacity(.7)]
+              ? [AppColors.honeyGold, AppColors.honeyGold.withValues(alpha:.7)]
               : [Colors.grey.shade700, Colors.grey.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -164,7 +164,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Text(
                       _formatStatus(status),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(.8),
+                        color: Colors.white.withValues(alpha:.8),
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -179,7 +179,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Text(
               'Renews on ${_formatDate(_subscription!['current_period_ends_at'])}',
               style: TextStyle(
-                color: Colors.white.withOpacity(.7),
+                color: Colors.white.withValues(alpha:.7),
                 fontSize: 13,
               ),
             ),
@@ -350,7 +350,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildCancelSection() {
     return Card(
-      color: AppColors.coral.withOpacity(.1),
+      color: AppColors.coral.withValues(alpha:.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

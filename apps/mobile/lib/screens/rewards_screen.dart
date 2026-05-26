@@ -130,7 +130,7 @@ class _RewardsScreenState extends State<RewardsScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.honeyGold.withOpacity(0.1),
+                color: AppColors.honeyGold.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -151,7 +151,7 @@ class _RewardsScreenState extends State<RewardsScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.skyBlue.withOpacity(0.1),
+                color: AppColors.skyBlue.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -169,7 +169,7 @@ class _RewardsScreenState extends State<RewardsScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.grassGreen.withOpacity(0.1),
+                color: AppColors.grassGreen.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -503,8 +503,8 @@ class _RewardsScreenState extends State<RewardsScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.honeyGold.withOpacity(0.1),
-                  AppColors.honeyGold.withOpacity(0.05),
+                  AppColors.honeyGold.withValues(alpha:0.1),
+                  AppColors.honeyGold.withValues(alpha:0.05),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -673,7 +673,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                           ),
                           decoration: BoxDecoration(
                             color: canAfford
-                                ? AppColors.honeyGold.withOpacity(0.2)
+                                ? AppColors.honeyGold.withValues(alpha:0.2)
                                 : Colors.grey[200],
                             borderRadius: BorderRadius.circular(20),
                           ),

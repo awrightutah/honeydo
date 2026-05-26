@@ -461,7 +461,7 @@ class _SectionHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
           decoration: BoxDecoration(
-            color: AppColors.honeyGold.withOpacity(.2),
+            color: AppColors.honeyGold.withValues(alpha:.2),
             borderRadius: BorderRadius.circular(100),
           ),
           child: Text('$count', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
@@ -527,7 +527,7 @@ class _ChoreCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.honeyGold.withOpacity(.2),
+                              color: AppColors.honeyGold.withValues(alpha:.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text('⭐', style: TextStyle(fontSize: 12)),
@@ -543,7 +543,7 @@ class _ChoreCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: difficultyColor.withOpacity(.15),
+                      color: difficultyColor.withValues(alpha:.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

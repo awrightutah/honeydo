@@ -334,7 +334,7 @@ class _HouseholdStatsScreenState extends State<HouseholdStatsScreen> {
                                               end: Alignment.bottomCenter,
                                               colors: isToday
                                                   ? [AppColors.honeyGold, const Color(0xFFFF8F00)]
-                                                  : [AppColors.skyBlue.withOpacity(.7), AppColors.skyBlue],
+                                                  : [AppColors.skyBlue.withValues(alpha:.7), AppColors.skyBlue],
                                             ),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
@@ -476,7 +476,7 @@ class _HouseholdStatsScreenState extends State<HouseholdStatsScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: AppColors.honeyGold.withOpacity(.1),
+                                          color: AppColors.honeyGold.withValues(alpha:.1),
                                           borderRadius: BorderRadius.circular(100),
                                         ),
                                         child: Text(
@@ -511,7 +511,7 @@ class _HouseholdStatsScreenState extends State<HouseholdStatsScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: AppColors.coral.withOpacity(.12),
+                                color: AppColors.coral.withValues(alpha:.12),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(Icons.warning_amber_rounded, color: AppColors.coral),
@@ -586,7 +586,7 @@ class _StatCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress.clamp(0.0, 1.0),
                 minHeight: 8,
-                backgroundColor: color.withOpacity(.15),
+                backgroundColor: color.withValues(alpha:.15),
                 valueColor: AlwaysStoppedAnimation(color),
               ),
             ),

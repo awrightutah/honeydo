@@ -370,10 +370,10 @@ class _SearchFilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? chipColor.withOpacity(.15) : Colors.grey.shade100,
+          color: selected ? chipColor.withValues(alpha:.15) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
-            color: selected ? chipColor.withOpacity(.4) : Colors.grey.shade200,
+            color: selected ? chipColor.withValues(alpha:.4) : Colors.grey.shade200,
           ),
         ),
         child: Row(
@@ -391,7 +391,7 @@ class _SearchFilterChip extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
-                color: selected ? chipColor.withOpacity(.2) : Colors.grey.shade200,
+                color: selected ? chipColor.withValues(alpha:.2) : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Text(
@@ -489,7 +489,7 @@ class _ChoreResultCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(.12),
+                  color: statusColor.withValues(alpha:.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -511,7 +511,7 @@ class _ChoreResultCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(.1),
+                            color: statusColor.withValues(alpha:.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -580,7 +580,7 @@ class _RecipeResultCard extends StatelessWidget {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: AppColors.coral.withOpacity(.1),
+                    color: AppColors.coral.withValues(alpha:.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: imageUrl != null
@@ -649,7 +649,7 @@ class _ShoppingResultCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: purchased ? AppColors.grassGreen.withOpacity(.12) : AppColors.honeyGold.withOpacity(.12),
+                  color: purchased ? AppColors.grassGreen.withValues(alpha:.12) : AppColors.honeyGold.withValues(alpha:.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(

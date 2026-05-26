@@ -112,7 +112,7 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
               children: [
                 Expanded(
                   child: Card(
-                    color: AppColors.honeyGold.withOpacity(0.1),
+                    color: AppColors.honeyGold.withValues(alpha:0.1),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -135,7 +135,7 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Card(
-                    color: AppColors.grassGreen.withOpacity(0.1),
+                    color: AppColors.grassGreen.withValues(alpha:0.1),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -159,7 +159,7 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Card(
-                    color: AppColors.coral.withOpacity(0.1),
+                    color: AppColors.coral.withValues(alpha:0.1),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -312,7 +312,7 @@ class _PointHistoryScreenState extends State<PointHistoryScreen> {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: typeColor.withOpacity(0.1),
+                                    color: typeColor.withValues(alpha:0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(typeIcon, color: typeColor, size: 20),

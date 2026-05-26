@@ -539,7 +539,7 @@ class _SectionHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
           decoration: BoxDecoration(
-            color: AppColors.honeyGold.withOpacity(.2),
+            color: AppColors.honeyGold.withValues(alpha:.2),
             borderRadius: BorderRadius.circular(100),
           ),
           child: Text('$count',
@@ -723,7 +723,7 @@ class _WishlistCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.honeyGold.withOpacity(.15),
+                  color: AppColors.honeyGold.withValues(alpha:.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(category,

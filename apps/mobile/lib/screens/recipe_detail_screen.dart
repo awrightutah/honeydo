@@ -576,8 +576,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.honeyGold.withOpacity(0.3),
-            AppColors.coral.withOpacity(0.2),
+            AppColors.honeyGold.withValues(alpha:0.3),
+            AppColors.coral.withValues(alpha:0.2),
           ],
         ),
       ),
@@ -786,9 +786,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: (color ?? AppColors.honeyGold).withOpacity(0.1),
+        color: (color ?? AppColors.honeyGold).withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: (color ?? AppColors.honeyGold).withOpacity(0.3)),
+        border: Border.all(color: (color ?? AppColors.honeyGold).withValues(alpha:0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -816,7 +816,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(

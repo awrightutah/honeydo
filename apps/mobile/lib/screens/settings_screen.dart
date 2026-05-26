@@ -484,7 +484,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSectionHeader('Profile'),
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.honeyGold.withOpacity(0.2),
+              backgroundColor: AppColors.honeyGold.withValues(alpha:0.2),
               child: Text(
                 (_myMembership?['display_name'] as String? ?? '?')[0].toUpperCase(),
                 style: const TextStyle(

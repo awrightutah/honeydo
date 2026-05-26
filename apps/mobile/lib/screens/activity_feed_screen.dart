@@ -394,7 +394,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.grassGreen.withOpacity(0.15),
+            color: AppColors.grassGreen.withValues(alpha:0.15),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.check_circle, color: AppColors.grassGreen, size: 20),
@@ -403,7 +403,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.honeyGold.withOpacity(0.15),
+            color: AppColors.honeyGold.withValues(alpha:0.15),
             shape: BoxShape.circle,
           ),
           child: Text(activity['badge_icon'] ?? '🏆', style: const TextStyle(fontSize: 20)),
@@ -412,7 +412,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: (activity['transaction_type'] == 'earned' ? AppColors.honeyGold : AppColors.coral).withOpacity(0.15),
+            color: (activity['transaction_type'] == 'earned' ? AppColors.honeyGold : AppColors.coral).withValues(alpha:0.15),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -425,7 +425,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.skyBlue.withOpacity(0.15),
+            color: AppColors.skyBlue.withValues(alpha:0.15),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.card_giftcard, color: AppColors.skyBlue, size: 20),
@@ -434,7 +434,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.purple.withOpacity(0.15),
+            color: Colors.purple.withValues(alpha:0.15),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.person_add, color: Colors.purple, size: 20),
@@ -446,7 +446,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha:0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.restaurant_menu, color: color, size: 20),
@@ -456,7 +456,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.grey.withValues(alpha:0.15),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.info, color: Colors.grey, size: 20),

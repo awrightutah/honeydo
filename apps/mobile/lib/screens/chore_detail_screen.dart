@@ -430,12 +430,12 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [_statusColor(status).withOpacity(0.1), _statusColor(status).withOpacity(0.05)],
+                colors: [_statusColor(status).withValues(alpha:0.1), _statusColor(status).withValues(alpha:0.05)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _statusColor(status).withOpacity(0.3)),
+              border: Border.all(color: _statusColor(status).withValues(alpha:0.3)),
             ),
             child: Row(
               children: [
@@ -468,7 +468,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.honeyGold.withOpacity(0.15),
+                    color: AppColors.honeyGold.withValues(alpha:0.15),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Row(
@@ -551,9 +551,9 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.coral.withOpacity(0.08),
+                color: AppColors.coral.withValues(alpha:0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.coral.withOpacity(0.4)),
+                border: Border.all(color: AppColors.coral.withValues(alpha:0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -781,8 +781,8 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
       avatar: Icon(icon, size: 18, color: color),
       label: Text(label),
       labelStyle: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13),
-      backgroundColor: color.withOpacity(0.1),
-      side: BorderSide(color: color.withOpacity(0.3)),
+      backgroundColor: color.withValues(alpha:0.1),
+      side: BorderSide(color: color.withValues(alpha:0.3)),
       onPressed: onTap,
     );
   }
@@ -1294,7 +1294,7 @@ class _ChoreDetailScreenState extends State<ChoreDetailScreen> {
           // Avatar
           CircleAvatar(
             radius: 16,
-            backgroundColor: AppColors.honeyGold.withOpacity(.2),
+            backgroundColor: AppColors.honeyGold.withValues(alpha:.2),
             backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
             child: avatarUrl == null
                 ? Text(

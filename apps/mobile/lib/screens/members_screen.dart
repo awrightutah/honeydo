@@ -236,9 +236,9 @@ class _MembersScreenState extends State<MembersScreen> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: AppColors.skyBlue.withOpacity(.1),
+                                  color: AppColors.skyBlue.withValues(alpha:.1),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.skyBlue.withOpacity(.3)),
+                                  border: Border.all(color: AppColors.skyBlue.withValues(alpha:.3)),
                                 ),
                                 child: Column(
                                   children: [
@@ -339,7 +339,7 @@ class _MemberCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: CircleAvatar(
-          backgroundColor: isKid ? AppColors.honeyGold.withOpacity(.2) : AppColors.skyBlue.withOpacity(.2),
+          backgroundColor: isKid ? AppColors.honeyGold.withValues(alpha:.2) : AppColors.skyBlue.withValues(alpha:.2),
           child: Text(
             isKid ? '👶' : '👤',
             style: const TextStyle(fontSize: 22),
@@ -353,7 +353,7 @@ class _MemberCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.grassGreen.withOpacity(.15),
+                  color: AppColors.grassGreen.withValues(alpha:.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text('You', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.grassGreen)),
@@ -366,7 +366,7 @@ class _MemberCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: role == 'admin' ? AppColors.coral.withOpacity(.15) : Colors.grey.withOpacity(.1),
+                color: role == 'admin' ? AppColors.coral.withValues(alpha:.15) : Colors.grey.withValues(alpha:.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -488,7 +488,7 @@ class _AddSubProfileSheetState extends State<_AddSubProfileSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.grassGreen.withOpacity(.1),
+                color: AppColors.grassGreen.withValues(alpha:.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

@@ -88,14 +88,14 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.honeyGold.withOpacity(0.1),
-                        AppColors.honeyGold.withOpacity(0.05),
+                        AppColors.honeyGold.withValues(alpha:0.1),
+                        AppColors.honeyGold.withValues(alpha:0.05),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.honeyGold.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.honeyGold.withValues(alpha:0.3)),
                   ),
                   child: Row(
                     children: [

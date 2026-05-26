@@ -1250,7 +1250,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: AppColors.honeyGold.withOpacity(0.2),
+                        color: AppColors.honeyGold.withValues(alpha:0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.restaurant, size: 32),
@@ -1385,7 +1385,7 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: AppColors.skyBlue.withOpacity(0.2),
+                        color: AppColors.skyBlue.withValues(alpha:0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.public, size: 32),
@@ -1659,7 +1659,7 @@ class _MyRequestCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: pillColor.withOpacity(0.15),
+                          color: pillColor.withValues(alpha:0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

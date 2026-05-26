@@ -234,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 56,
-                                backgroundColor: AppColors.honeyGold.withOpacity(.15),
+                                backgroundColor: AppColors.honeyGold.withValues(alpha:.15),
                                 backgroundImage: _membership?['avatar_url'] != null
                                     ? NetworkImage(_membership!['avatar_url'])
                                     : null,

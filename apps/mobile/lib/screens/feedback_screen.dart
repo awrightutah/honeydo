@@ -302,7 +302,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(.1),
+                    color: color.withValues(alpha:.1),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
@@ -336,9 +336,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.honeyGold.withOpacity(.05),
+                  color: AppColors.honeyGold.withValues(alpha:.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.honeyGold.withOpacity(.2)),
+                  border: Border.all(color: AppColors.honeyGold.withValues(alpha:.2)),
                 ),
                 child: Row(
                   children: [

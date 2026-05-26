@@ -111,8 +111,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.honeyGold.withOpacity(0.1),
-                          AppColors.skyBlue.withOpacity(0.05),
+                          AppColors.honeyGold.withValues(alpha:0.1),
+                          AppColors.skyBlue.withValues(alpha:0.05),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -282,7 +282,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: isEarned
-            ? BorderSide(color: AppColors.honeyGold.withOpacity(0.5), width: 2)
+            ? BorderSide(color: AppColors.honeyGold.withValues(alpha:0.5), width: 2)
             : BorderSide.none,
       ),
       child: Container(
@@ -296,7 +296,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   badge['icon'],
                   style: TextStyle(
                     fontSize: 40,
-                    color: isEarned ? null : Colors.grey.withOpacity(0.3),
+                    color: isEarned ? null : Colors.grey.withValues(alpha:0.3),
                   ),
                 ),
                 if (!isEarned)

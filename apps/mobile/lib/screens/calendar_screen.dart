@@ -273,7 +273,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                         IconButton(
                           icon: const Icon(Icons.add_rounded, size: 20),
                           onPressed: _showAddEventSheet,
-                          style: IconButton.styleFrom(backgroundColor: AppColors.honeyGold.withOpacity(.1)),
+                          style: IconButton.styleFrom(backgroundColor: AppColors.honeyGold.withValues(alpha:.1)),
                         ),
                       ],
                     ),
@@ -322,7 +322,7 @@ class _CalendarScreenState extends State<CalendarScreen>
           onTap: () => setState(() => _selectedDay = day),
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.honeyGold : (isToday ? AppColors.honeyGold.withOpacity(.15) : null),
+              color: isSelected ? AppColors.honeyGold : (isToday ? AppColors.honeyGold.withValues(alpha:.15) : null),
               shape: BoxShape.circle,
             ),
             child: Stack(
@@ -467,7 +467,7 @@ class _EventCard extends StatelessWidget {
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 16),
           decoration: BoxDecoration(
-            color: AppColors.coral.withOpacity(.1),
+            color: AppColors.coral.withValues(alpha:.1),
             borderRadius: BorderRadius.circular(24),
           ),
           child: const Icon(Icons.delete_outline_rounded, color: AppColors.coral),
@@ -503,7 +503,7 @@ class _EventCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.skyBlue.withOpacity(.15),
+                        color: AppColors.skyBlue.withValues(alpha:.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text('All day', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.skyBlue)),

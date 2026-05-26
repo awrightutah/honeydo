@@ -264,7 +264,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
                     return Container(
                       decoration: BoxDecoration(
-                        color: isPinned ? AppColors.honeyGold.withOpacity(.1) : Colors.white,
+                        color: isPinned ? AppColors.honeyGold.withValues(alpha:.1) : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isPinned ? AppColors.honeyGold : Colors.grey.shade200,
@@ -272,7 +272,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(.05),
+                            color: Colors.black.withValues(alpha:.05),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -285,7 +285,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: isPinned ? AppColors.honeyGold.withOpacity(.15) : Colors.grey.shade50,
+                              color: isPinned ? AppColors.honeyGold.withValues(alpha:.15) : Colors.grey.shade50,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(16),
                                 topRight: Radius.circular(16),
@@ -296,7 +296,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 // Avatar
                                 CircleAvatar(
                                   radius: 16,
-                                  backgroundColor: AppColors.honeyGold.withOpacity(.2),
+                                  backgroundColor: AppColors.honeyGold.withValues(alpha:.2),
                                   backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
                                   child: avatarUrl == null
                                       ? Text(
