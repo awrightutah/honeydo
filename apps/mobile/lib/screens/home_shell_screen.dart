@@ -113,8 +113,15 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
     }
     try {
       final householdId = _household!['id'];
-      // Two parallel id-only queries. At current scale (~few items) this is
-      // cheap; switch to `.count()` syntax later if volume grows.
+      // Three parallel id-only queries (chores + shopping wishlist + meal
+      // requests). At current scale (~few items) this is cheap; switch to
+      // `.count()` syntax later if volume grows.
+      //
+      // Batch 6a — RealtimeService doesn't expose a mealRequestsVersion
+      // notifier today, so meal request count freshness relies on initial
+      // load + navigation-return refresh (the .then on the AppBar
+      // IconButton's Navigator.push). Wire a real listener when Batch 6b
+      // adds the recent-requests UI or Batch 6c adds push notifications.
       final results = await Future.wait([
         Supabase.instance.client
             .from('chores')
@@ -126,9 +133,15 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             .select('id')
             .eq('household_id', householdId)
             .eq('is_wishlist', true),
+        Supabase.instance.client
+            .from('meal_requests')
+            .select('id')
+            .eq('household_id', householdId)
+            .eq('status', 'pending'),
       ]);
-      final total =
-          (results[0] as List).length + (results[1] as List).length;
+      final total = (results[0] as List).length +
+          (results[1] as List).length +
+          (results[2] as List).length;
       if (mounted) setState(() => _pendingTotal = total);
     } catch (e) {
       debugPrint('load pending total failed: $e');

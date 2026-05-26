@@ -31,6 +31,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
   // _VerificationCard thumbnail. Null entry = kid skipped photo (Batch 4a).
   Map<String, Map<String, dynamic>?> _latestPhotoByChoreId = {};
   List<Map<String, dynamic>> _pendingWishlist = [];
+  // Pending meal requests (Batch 6a). Each row carries joined recipe data
+  // and the requesting kid's display info. Approve/deny via decide_meal_request
+  // RPC (admin-only). When request has both date + meal_type, Approve calls
+  // RPC directly. When either is null, Approve opens _ApproveMealRequestDialog
+  // to collect the override fields the RPC requires.
+  List<Map<String, dynamic>> _pendingMealRequests = [];
   bool _isLoading = true;
 
   @override
@@ -124,11 +130,25 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
           .eq('is_wishlist', true)
           .order('created_at', ascending: false);
 
+      // Batch 6a — pending meal requests for this household. Joined to
+      // household_recipes (for title + image_url) and household_members
+      // (for the requesting kid's display name).
+      final pendingMealsRaw = await Supabase.instance.client
+          .from('meal_requests')
+          .select(
+              '*, recipe:household_recipes(title, image_url), '
+              'requester:household_members!requested_by_member_id(display_name, kind)')
+          .eq('household_id', householdId)
+          .eq('status', 'pending')
+          .order('created_at', ascending: false);
+
       if (!mounted) return;
       setState(() {
         _pendingVerification = List<Map<String, dynamic>>.from(pendingVerif);
         _latestPhotoByChoreId = photosByChore;
         _pendingWishlist = List<Map<String, dynamic>>.from(pendingWish);
+        _pendingMealRequests =
+            List<Map<String, dynamic>>.from(pendingMealsRaw);
         _isLoading = false;
       });
     } catch (e) {
@@ -247,6 +267,103 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     }
   }
 
+  /// Approve a kid-submitted meal request → calls decide_meal_request
+  /// with p_approved=true. The RPC atomically inserts the matching
+  /// meal_plans row.
+  ///
+  /// **Case A** (request has both `requested_for_date` AND `meal_type`):
+  /// call RPC directly.
+  ///
+  /// **Case B** (either field is null): RPC would raise. Open
+  /// `_ApproveMealRequestDialog` to collect overrides + optional admin
+  /// note, then call RPC with `p_planned_for_override` /
+  /// `p_meal_type_override` / `p_note`.
+  Future<void> _approveMealRequest(Map<String, dynamic> request) async {
+    final requestId = request['id'] as String;
+    final requestDate = request['requested_for_date'] as String?;
+    final requestMealType = request['meal_type'] as String?;
+    final recipeTitle =
+        (request['recipe']?['title'] as String?) ?? 'this meal';
+
+    try {
+      if (requestDate != null && requestMealType != null) {
+        // Case A — RPC fires directly.
+        await Supabase.instance.client.rpc('decide_meal_request', params: {
+          'p_request_id': requestId,
+          'p_approved': true,
+        });
+      } else {
+        // Case B — collect overrides.
+        final result = await showDialog<_ApproveMealResult?>(
+          context: context,
+          builder: (ctx) => _ApproveMealRequestDialog(
+            recipeTitle: recipeTitle,
+            initialDate: requestDate == null
+                ? null
+                : DateTime.tryParse(requestDate),
+            initialMealType: requestMealType,
+          ),
+        );
+        if (result == null) return; // cancelled
+
+        await Supabase.instance.client.rpc('decide_meal_request', params: {
+          'p_request_id': requestId,
+          'p_approved': true,
+          'p_note': result.note,
+          'p_planned_for_override':
+              result.date.toIso8601String().split('T').first,
+          'p_meal_type_override': result.mealType,
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Added to meal plan')),
+        );
+      }
+      await _loadData();
+    } catch (e) {
+      debugPrint('decide_meal_request approve failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not approve meal request: $e')),
+        );
+      }
+    }
+  }
+
+  /// Deny a meal request via `decide_meal_request` with p_approved=false.
+  /// Reuses `showRejectReasonDialog` with verb='Deny' (Batch 6a's verb
+  /// param addition). Empty string from the dialog becomes null on the
+  /// RPC's `p_note` so the column stays NULL when no reason was typed.
+  Future<void> _denyMealRequest(String requestId, String recipeTitle) async {
+    final reason =
+        await showRejectReasonDialog(context, recipeTitle, verb: 'Deny');
+    if (reason == null) return; // cancelled
+
+    try {
+      await Supabase.instance.client.rpc('decide_meal_request', params: {
+        'p_request_id': requestId,
+        'p_approved': false,
+        'p_note': reason.isEmpty ? null : reason,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request denied')),
+        );
+      }
+      await _loadData();
+    } catch (e) {
+      debugPrint('decide_meal_request deny failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not deny meal request: $e')),
+        );
+      }
+    }
+  }
+
   /// Migrated from chore_dashboard alongside _verifyChore. When a recurring
   /// chore is approved, schedule its next occurrence.
   Future<void> _createNextRecurringChoreIfNeeded(
@@ -298,8 +415,9 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasAny =
-        _pendingVerification.isNotEmpty || _pendingWishlist.isNotEmpty;
+    final hasAny = _pendingVerification.isNotEmpty ||
+        _pendingWishlist.isNotEmpty ||
+        _pendingMealRequests.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -364,6 +482,24 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                               onDeny: () => _denyWishlistItem(
                                   item['id'], item['name'] ?? 'Item'),
                             )),
+                        const SizedBox(height: 24),
+                      ],
+                      if (_pendingMealRequests.isNotEmpty) ...[
+                        _SectionHeader(
+                            title: 'Meal Requests',
+                            count: _pendingMealRequests.length),
+                        const SizedBox(height: 8),
+                        ..._pendingMealRequests.map((req) {
+                          final recipeTitle =
+                              req['recipe']?['title'] ?? 'this meal';
+                          return _MealRequestCard(
+                            key: ValueKey(req['id']),
+                            request: req,
+                            onApprove: () => _approveMealRequest(req),
+                            onDeny: () =>
+                                _denyMealRequest(req['id'], recipeTitle),
+                          );
+                        }),
                         const SizedBox(height: 24),
                       ],
                     ],
@@ -636,4 +772,349 @@ String _formatRelative(String? iso) {
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   if (diff.inDays < 7) return '${diff.inDays}d ago';
   return '${(diff.inDays / 7).floor()}w ago';
+}
+
+const _mealTypeEmojis = {
+  'breakfast': '🌅',
+  'lunch': '☀️',
+  'dinner': '🌙',
+  'snack': '🍎',
+  'other': '🍽️',
+};
+
+String _formatMealDate(String? iso) {
+  if (iso == null) return 'Any day';
+  final d = DateTime.tryParse(iso);
+  if (d == null) return 'Any day';
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final monthStr = months[d.month - 1];
+  final now = DateTime.now();
+  if (d.year == now.year) return '$monthStr ${d.day}';
+  return '$monthStr ${d.day}, ${d.year}';
+}
+
+/// Batch 6a — admin-facing card for a single pending meal_request row in
+/// the unified Approvals dashboard. Mirrors `_WishlistCard`'s shape with
+/// a recipe image thumbnail (Q8). Approve/Deny callbacks are wired from
+/// `_ApprovalsScreenState`.
+class _MealRequestCard extends StatelessWidget {
+  const _MealRequestCard({
+    super.key,
+    required this.request,
+    required this.onApprove,
+    required this.onDeny,
+  });
+  final Map<String, dynamic> request;
+  final VoidCallback onApprove;
+  final VoidCallback onDeny;
+
+  @override
+  Widget build(BuildContext context) {
+    final recipe = request['recipe'] as Map<String, dynamic>?;
+    final recipeTitle = recipe?['title'] as String? ?? 'Unnamed meal';
+    final recipeImageUrl = recipe?['image_url'] as String?;
+    final requester = request['requester'] as Map<String, dynamic>?;
+    final requestedBy = requester?['display_name'] as String? ?? 'Someone';
+    final createdAt = request['created_at'] as String?;
+    final mealType = request['meal_type'] as String?;
+    final dateStr = _formatMealDate(request['requested_for_date'] as String?);
+    final mealStr = mealType == null
+        ? 'Any meal'
+        : '${_mealTypeEmojis[mealType] ?? ''} '
+            '${mealType[0].toUpperCase()}${mealType.substring(1)}';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (recipeImageUrl != null && recipeImageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: Image.network(
+                        recipeImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: Colors.grey.shade100,
+                          child: Icon(Icons.restaurant_menu_rounded,
+                              color: Colors.grey.shade500),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.restaurant_menu_rounded,
+                        color: Colors.grey.shade500),
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(recipeTitle,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$mealStr · $dateStr',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Requested by $requestedBy · ${_formatRelative(createdAt)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onDeny,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Deny'),
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.coral),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onApprove,
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Approve'),
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.grassGreen),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Returned by `_ApproveMealRequestDialog` on success — bundles the admin's
+/// chosen date + meal_type override + optional note. The admin's note flows
+/// into `decide_meal_request`'s `p_note` (writes to `meal_requests.decided_note`).
+class _ApproveMealResult {
+  const _ApproveMealResult({
+    required this.date,
+    required this.mealType,
+    this.note,
+  });
+  final DateTime date;
+  final String mealType;
+  final String? note;
+}
+
+/// Case B approve dialog — shown only when the request lacks date OR
+/// meal_type. Admin completes the missing fields (RPC raises if either
+/// is still null after the COALESCE with override params). Note field
+/// is optional; persists to `meal_requests.decided_note`.
+///
+/// StatefulWidget so the TextEditingController is owned by State and
+/// disposed post-animation (carry-forward lesson from 5b-i's reject
+/// dialog refactor).
+class _ApproveMealRequestDialog extends StatefulWidget {
+  const _ApproveMealRequestDialog({
+    required this.recipeTitle,
+    this.initialDate,
+    this.initialMealType,
+  });
+  final String recipeTitle;
+  final DateTime? initialDate;
+  final String? initialMealType;
+
+  @override
+  State<_ApproveMealRequestDialog> createState() =>
+      _ApproveMealRequestDialogState();
+}
+
+class _ApproveMealRequestDialogState
+    extends State<_ApproveMealRequestDialog> {
+  DateTime? _date;
+  late String _mealType;
+  final _noteController = TextEditingController();
+
+  static const _mealTypes = [
+    'breakfast',
+    'lunch',
+    'dinner',
+    'snack',
+    'other',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _date = widget.initialDate;
+    _mealType = widget.initialMealType ?? 'dinner';
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 90)),
+    );
+    if (picked != null) {
+      setState(() => _date = picked);
+    }
+  }
+
+  String _formatDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${months[d.month - 1]} ${d.day}';
+  }
+
+  void _submit() {
+    if (_date == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please pick a date')),
+      );
+      return;
+    }
+    Navigator.pop(
+      context,
+      _ApproveMealResult(
+        date: _date!,
+        mealType: _mealType,
+        note: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Approve "${widget.recipeTitle}"?'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Date',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, size: 16),
+                    const SizedBox(width: 8),
+                    Text(_date == null ? 'Pick a date' : _formatDate(_date!)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Meal type',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: _mealType,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              ),
+              items: _mealTypes
+                  .map((m) => DropdownMenuItem<String>(
+                        value: m,
+                        child: Text(
+                          '${_mealTypeEmojis[m] ?? ''} '
+                          '${m[0].toUpperCase()}${m.substring(1)}',
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _mealType = v);
+              },
+            ),
+            const SizedBox(height: 16),
+            const Text('Note (optional)',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _noteController,
+              maxLines: 2,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Let\'s do this for Friday dinner!',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          style:
+              FilledButton.styleFrom(backgroundColor: AppColors.grassGreen),
+          child: const Text('Approve'),
+        ),
+      ],
+    );
+  }
 }

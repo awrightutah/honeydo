@@ -25,17 +25,19 @@ import '../theme/app_theme.dart';
 /// the widget tree fully unmounts, post-animation.
 Future<String?> showRejectReasonDialog(
   BuildContext context,
-  String itemName,
-) {
+  String itemName, {
+  String verb = 'Reject',
+}) {
   return showDialog<String?>(
     context: context,
-    builder: (ctx) => _RejectReasonDialog(itemName: itemName),
+    builder: (ctx) => _RejectReasonDialog(itemName: itemName, verb: verb),
   );
 }
 
 class _RejectReasonDialog extends StatefulWidget {
-  const _RejectReasonDialog({required this.itemName});
+  const _RejectReasonDialog({required this.itemName, required this.verb});
   final String itemName;
+  final String verb;
 
   @override
   State<_RejectReasonDialog> createState() => _RejectReasonDialogState();
@@ -53,7 +55,7 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Reject "${widget.itemName}"?'),
+      title: Text('${widget.verb} "${widget.itemName}"?'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +82,7 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
         FilledButton(
           onPressed: () => Navigator.pop(context, _controller.text.trim()),
           style: FilledButton.styleFrom(backgroundColor: AppColors.coral),
-          child: const Text('Reject'),
+          child: Text(widget.verb),
         ),
       ],
     );

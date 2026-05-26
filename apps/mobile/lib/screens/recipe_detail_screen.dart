@@ -6,6 +6,7 @@ import '../services/image_upload_service.dart';
 import '../services/active_member_service.dart';
 import '../utils/membership.dart';
 import '../utils/permissions.dart';
+import '../widgets/meal_request_sheet.dart';
 
 /// Full recipe detail screen with viewing, editing, and sharing capabilities.
 class RecipeDetailScreen extends StatefulWidget {
@@ -544,10 +545,26 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   child: const Icon(Icons.shopping_cart, color: Colors.white),
                 ),
                 const SizedBox(width: 8),
+                // Batch 6a — kid sees a "Request this meal" FAB that opens
+                // MealRequestSheet → create_meal_request RPC. Adult keeps
+                // the existing _addToMealPlan flow (direct meal_plans INSERT).
                 FloatingActionButton.small(
                   heroTag: 'meal',
-                  onPressed: _addToMealPlan,
+                  onPressed: () async {
+                    if (Permissions.isKid(_householdMember)) {
+                      await MealRequestSheet.show(
+                        context,
+                        recipeId: widget.recipeId,
+                        recipeTitle: _recipe?['title'] ?? 'this meal',
+                      );
+                    } else {
+                      await _addToMealPlan();
+                    }
+                  },
                   backgroundColor: AppColors.skyBlue,
+                  tooltip: Permissions.isKid(_householdMember)
+                      ? 'Request this meal'
+                      : 'Add to meal plan',
                   child: const Icon(Icons.calendar_month, color: Colors.white),
                 ),
               ],
