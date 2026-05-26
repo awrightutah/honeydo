@@ -264,8 +264,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (confirmed == true && selectedListId != null) {
       try {
         final ingredients = _recipe?['ingredients'] as List<dynamic>? ?? [];
-        final isKid = Permissions.isKid(_householdMember);
 
+        // Adult-only path. The kid branch was removed as a Batch 6a
+        // followup — recipe ingredients only enter the shopping list via
+        // the meal-request → admin approve → meal_plans flow. The UI
+        // entry points (cart FAB + popup menu) are gated to hide this
+        // method from kid sessions.
         for (final ing in ingredients) {
           final ingMap = ing is Map ? ing : {'raw': ing.toString()};
           final rawQuantity = ingMap['quantity'];
@@ -276,38 +280,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               (ingMap['raw'] ?? ingMap['name'] ?? ing.toString()).toString();
           final displayQuantity = ingMap['raw']?.toString();
 
-          if (isKid) {
-            // Kid path: add_shopping_item RPC. No per-ingredient category
-            // → kid inserts land in wishlist server-side.
-            await Supabase.instance.client.rpc('add_shopping_item', params: {
-              'p_household_id': _householdMember!['household_id'],
-              'p_member_id': _householdMember!['id'],
-              'p_name': name,
-              'p_quantity': parsedQuantity,
-              'p_shopping_list_id': selectedListId,
-              'p_source_recipe_id': widget.recipeId,
-              'p_display_quantity': displayQuantity,
-            });
-          } else {
-            // Adult path: direct INSERT, unchanged.
-            await Supabase.instance.client.from('shopping_items').insert({
-              'household_id': _householdMember!['household_id'],
-              'shopping_list_id': selectedListId,
-              'name': name,
-              'quantity': parsedQuantity,
-              'display_quantity': displayQuantity,
-              'purchased': false,
-            });
-          }
+          await Supabase.instance.client.from('shopping_items').insert({
+            'household_id': _householdMember!['household_id'],
+            'shopping_list_id': selectedListId,
+            'name': name,
+            'quantity': parsedQuantity,
+            'display_quantity': displayQuantity,
+            'purchased': false,
+          });
         }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isKid
-                  ? 'Added ${ingredients.length} ingredient${ingredients.length == 1 ? '' : 's'} to wishlist — waiting for approval'
-                  : 'Added ${ingredients.length} ingredients to shopping list!'),
-            ),
+            SnackBar(content: Text('Added ${ingredients.length} ingredients to shopping list!')),
           );
         }
       } catch (e) {
@@ -502,7 +487,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'shopping', child: Row(children: [Icon(Icons.shopping_cart, size: 20), SizedBox(width: 12), Text('Add to Shopping List')])),
+                    // Batch 6a followup — "Add to Shopping List" hidden from
+                    // kids; recipe-ingredient bulk-add only flows via the
+                    // meal-request → approve → meal_plans path.
+                    if (!Permissions.isKid(_householdMember))
+                      const PopupMenuItem(value: 'shopping', child: Row(children: [Icon(Icons.shopping_cart, size: 20), SizedBox(width: 12), Text('Add to Shopping List')])),
                     const PopupMenuItem(value: 'mealplan', child: Row(children: [Icon(Icons.calendar_month, size: 20), SizedBox(width: 12), Text('Add to Meal Plan')])),
                     const PopupMenuDivider(),
                     const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 20, color: AppColors.coral), SizedBox(width: 12), Text('Delete Recipe', style: TextStyle(color: AppColors.coral))])),
@@ -538,13 +527,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FloatingActionButton.small(
-                  heroTag: 'cart',
-                  onPressed: _addToShoppingList,
-                  backgroundColor: AppColors.grassGreen,
-                  child: const Icon(Icons.shopping_cart, color: Colors.white),
-                ),
-                const SizedBox(width: 8),
+                // Batch 6a followup — recipe-ingredient bulk-add is hidden
+                // from kids. Ingredients only flow into shopping via the
+                // meal-request → admin approve → meal_plans path. Kids
+                // can still request individual items via the wishlist
+                // single-item add path on shopping_list_screen.
+                if (!Permissions.isKid(_householdMember))
+                  FloatingActionButton.small(
+                    heroTag: 'cart',
+                    onPressed: _addToShoppingList,
+                    backgroundColor: AppColors.grassGreen,
+                    child: const Icon(Icons.shopping_cart, color: Colors.white),
+                  ),
+                if (!Permissions.isKid(_householdMember))
+                  const SizedBox(width: 8),
                 // Batch 6a — kid sees a "Request this meal" FAB that opens
                 // MealRequestSheet → create_meal_request RPC. Adult keeps
                 // the existing _addToMealPlan flow (direct meal_plans INSERT).

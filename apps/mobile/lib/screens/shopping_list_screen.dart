@@ -239,7 +239,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
         householdId: _household!['id'],
         shoppingListId: _activeListId!,
         myMemberId: _myMembership!['id'],
-        isKid: Permissions.isKid(_myMembership),
         recipes: _householdRecipes,
       ),
     ).then((_) => _loadShoppingItems());
@@ -516,7 +515,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Quick actions
+                  // Quick actions. Batch 6a followup — "From recipe" hidden
+                  // from kids; recipe-ingredient bulk-add only flows via the
+                  // meal-request → admin approve → meal_plans path. Kids
+                  // can still use the single-item "Add item" wishlist flow.
                   Row(
                     children: [
                       Expanded(
@@ -526,14 +528,16 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                           label: const Text('Add item'),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _showAddFromRecipeSheet,
-                          icon: const Icon(Icons.restaurant_menu_rounded, size: 18),
-                          label: const Text('From recipe'),
+                      if (!Permissions.isKid(_myMembership)) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _showAddFromRecipeSheet,
+                            icon: const Icon(Icons.restaurant_menu_rounded, size: 18),
+                            label: const Text('From recipe'),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -1013,17 +1017,15 @@ class _AddFromRecipeSheet extends StatefulWidget {
     required this.householdId,
     required this.shoppingListId,
     required this.myMemberId,
-    required this.isKid,
     required this.recipes,
   });
 
   final String householdId;
   final String shoppingListId;
   final String myMemberId;
-  // Batch 5a — when true, ingredient inserts route through add_shopping_item
-  // RPC (one round-trip per ingredient). Recipe ingredients have no per-item
-  // category metadata, so kid inserts always land in wishlist.
-  final bool isKid;
+  // isKid removed as a Batch 6a followup — this sheet is now adult-only;
+  // the entry-point button on shopping_list_screen is gated by
+  // Permissions.isKid before reaching this sheet.
   final List<Map<String, dynamic>> recipes;
 
   @override
@@ -1142,46 +1144,25 @@ class _AddFromRecipeSheetState extends State<_AddFromRecipeSheet> {
     setState(() => _isLoading = true);
 
     try {
-      if (widget.isKid) {
-        // Kid path: N RPC calls (one per ingredient). add_shopping_item
-        // accepts source_recipe_id as of migration 0021 (Gap 1 fix).
-        // No per-ingredient category → all land in wishlist server-side.
-        for (final ing in _selectedIngredients) {
-          await Supabase.instance.client.rpc('add_shopping_item', params: {
-            'p_household_id': widget.householdId,
-            'p_member_id': widget.myMemberId,
-            'p_name': ing,
-            'p_shopping_list_id': widget.shoppingListId,
-            'p_source_recipe_id': _selectedRecipeId,
-          });
-        }
+      // Adult-only bulk insert. The kid branch (RPC path with
+      // source_recipe_id) was removed as a Batch 6a followup —
+      // recipe-ingredient bulk-add only flows via the meal-request →
+      // admin approve → meal_plans path. The UI entry point ("From
+      // recipe" button on shopping_list_screen) is gated to hide this
+      // sheet from kid sessions.
+      final inserts = _selectedIngredients.map((ing) => {
+        'household_id': widget.householdId,
+        'shopping_list_id': widget.shoppingListId,
+        'name': ing,
+        'display_quantity': null,
+        'purchased': false,
+        'source_recipe_id': _selectedRecipeId,
+        'added_by_member_id': widget.myMemberId,
+      }).toList();
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Added ${_selectedIngredients.length} item${_selectedIngredients.length == 1 ? '' : 's'} to wishlist — waiting for approval',
-              ),
-            ),
-          );
-          Navigator.pop(context);
-        }
-      } else {
-        // Adult path: bulk INSERT preserves the original behavior.
-        final inserts = _selectedIngredients.map((ing) => {
-          'household_id': widget.householdId,
-          'shopping_list_id': widget.shoppingListId,
-          'name': ing,
-          'display_quantity': null,
-          'purchased': false,
-          'source_recipe_id': _selectedRecipeId,
-          'added_by_member_id': widget.myMemberId,
-        }).toList();
+      await Supabase.instance.client.from('shopping_items').insert(inserts);
 
-        await Supabase.instance.client.from('shopping_items').insert(inserts);
-
-        if (mounted) Navigator.pop(context);
-      }
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('add ingredients failed: $e');
       if (mounted) {
