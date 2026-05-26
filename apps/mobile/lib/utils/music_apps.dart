@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// entry to `MusicAppInfo.allApps`, and register the scheme in
 /// `ios/Runner/Info.plist` under `LSApplicationQueriesSchemes`. Without the
 /// Info.plist entry iOS silently returns false from `canLaunchUrl()`.
-enum MusicApp { spotify, appleMusic, youtubeMusic }
+enum MusicApp { spotify, appleMusic, youtubeMusic, pandora, amazonMusic }
 
 /// Metadata for one music app — what it's called, what string we store in
 /// `household_members.music_app_preference`, what URL scheme opens the app,
@@ -59,6 +59,29 @@ class MusicAppInfo {
       appStoreUrl:
           'https://apps.apple.com/app/apple-music/id1108187390',
       emoji: '🍎',
+    ),
+    MusicAppInfo(
+      app: MusicApp.pandora,
+      label: 'Pandora',
+      dbValue: 'pandora',
+      urlScheme: 'pandora://',
+      appStoreUrl:
+          'https://apps.apple.com/app/pandora-music-podcasts/id284035177',
+      emoji: '🔵',
+    ),
+    // Amazon Music URL scheme: the canonical scheme `amazonmusic://` is the
+    // most commonly cited and works for app launching. Some older references
+    // mention `amzn-mobile-music://` but that's deprecated. Verify on real
+    // device — if `canLaunchUrl` returns false even when Amazon Music is
+    // installed, try `amzn-mobile-music://` instead and update Info.plist.
+    MusicAppInfo(
+      app: MusicApp.amazonMusic,
+      label: 'Amazon Music',
+      dbValue: 'amazon_music',
+      urlScheme: 'amzn-mobile-music://',
+      appStoreUrl:
+          'https://apps.apple.com/app/amazon-music/id510855668',
+      emoji: '🟦',
     ),
   ];
 

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../services/image_upload_service.dart';
 import '../services/active_member_service.dart';
 import '../utils/membership.dart';
 import '../utils/music_apps.dart';
+import '../utils/music_launcher.dart';
 import '../utils/permissions.dart';
 
 /// Profile screen for managing display name, avatar, and viewing member details.
@@ -87,10 +87,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ─── Batch 8: kid music app deep link ───────────────────────────────────
+  //
+  // The launch + picker helpers were extracted to `utils/music_launcher.dart`
+  // and `widgets/music_picker_sheet.dart` during Batch 8.1 so the same logic
+  // could power the chore_dashboard floating shortcut. This screen still owns
+  // the local "playMusic" orchestration (null-preference → prompt + auto-open
+  // picker) and the row UI; the heavy lifting is shared.
 
-  /// Open the kid's preferred music app via URL scheme. If the app isn't
-  /// installed, fall back to the App Store after a brief SnackBar. If no
-  /// preference has been set, surface the picker instead of launching.
   Future<void> _playMusic() async {
     final info = MusicAppInfo.fromDbValue(
       _membership?['music_app_preference'] as String?,
@@ -102,95 +105,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _pickMusicApp();
       return;
     }
-    try {
-      final uri = Uri.parse(info.urlScheme);
-      final canLaunch = await canLaunchUrl(uri);
-      if (canLaunch) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("${info.label} isn't installed — opening App Store"),
-        ),
-      );
-      await launchUrl(
-        Uri.parse(info.appStoreUrl),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (e) {
-      debugPrint('play music failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Couldn't open music app: $e")),
-        );
-      }
-    }
+    await launchMusicApp(context, info);
   }
 
-  /// Bottom-sheet picker. Tapping an app writes the kid's preference back to
-  /// `household_members.music_app_preference` and refreshes the screen.
   Future<void> _pickMusicApp() async {
     final memberId = _membership?['id'] as String?;
     if (memberId == null) return;
-    final selected = await showModalBottomSheet<MusicAppInfo>(
-      context: context,
-      builder: (sheetCtx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-                child: Text(
-                  'Choose a music app',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              for (final info in MusicAppInfo.allApps)
-                ListTile(
-                  key: ValueKey(info.dbValue),
-                  leading: Text(info.emoji, style: const TextStyle(fontSize: 26)),
-                  title: Text(
-                    info.label,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  onTap: () => Navigator.pop(sheetCtx, info),
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-    if (selected == null) return;
-    try {
-      await Supabase.instance.client
-          .from('household_members')
-          .update({'music_app_preference': selected.dbValue})
-          .eq('id', memberId);
-      if (!mounted) return;
-      setState(() {
-        _membership = {
-          ..._membership!,
-          'music_app_preference': selected.dbValue,
-        };
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Music app set to ${selected.label}')),
-      );
-    } catch (e) {
-      debugPrint('update music_app_preference failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Couldn't save music app: $e")),
-        );
-      }
-    }
+    final picked = await pickAndSaveMusicApp(context, memberId: memberId);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _membership = {
+        ..._membership!,
+        'music_app_preference': picked.dbValue,
+      };
+    });
   }
 
   Future<void> _saveDisplayName() async {

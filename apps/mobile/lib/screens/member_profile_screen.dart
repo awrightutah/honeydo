@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../utils/music_apps.dart';
+import '../utils/music_launcher.dart';
 
 /// Public profile screen for a household member.
 /// Viewable by tapping on a member in the leaderboard or stats.
@@ -214,60 +215,16 @@ class _MemberProfileScreenState extends State<MemberProfileScreen> {
   }
 
   /// Admin-side picker. UPDATE writes to the viewed kid's member_id, not the
-  /// admin's own. RLS at the household level already permits this.
+  /// admin's own. Picker + DB write live in `utils/music_launcher.dart` so
+  /// chore_dashboard, profile_screen, and this screen all share the same
+  /// flow (Batch 8.1 extraction).
   Future<void> _pickMusicApp() async {
-    final selected = await showModalBottomSheet<MusicAppInfo>(
-      context: context,
-      builder: (sheetCtx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-                child: Text(
-                  'Choose a music app',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-              ),
-              for (final info in MusicAppInfo.allApps)
-                ListTile(
-                  key: ValueKey(info.dbValue),
-                  leading: Text(info.emoji,
-                      style: const TextStyle(fontSize: 26)),
-                  title: Text(
-                    info.label,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  onTap: () => Navigator.pop(sheetCtx, info),
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-    if (selected == null) return;
-    try {
-      await Supabase.instance.client
-          .from('household_members')
-          .update({'music_app_preference': selected.dbValue})
-          .eq('id', widget.memberId);
-      if (!mounted) return;
-      setState(() {
-        _member = {..._member!, 'music_app_preference': selected.dbValue};
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Music app set to ${selected.label}')),
-      );
-    } catch (e) {
-      debugPrint('admin update music_app_preference failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Couldn't save music app: $e")),
-        );
-      }
-    }
+    final picked =
+        await pickAndSaveMusicApp(context, memberId: widget.memberId);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _member = {..._member!, 'music_app_preference': picked.dbValue};
+    });
   }
 
   Widget _buildProfileHeader() {

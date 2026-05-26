@@ -35,6 +35,8 @@
 		<string>spotify</string>
 		<string>music</string>
 		<string>youtubemusic</string>
+		<string>pandora</string>
+		<string>amzn-mobile-music</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

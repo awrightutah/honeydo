@@ -5,6 +5,8 @@ import '../theme/app_theme.dart';
 import '../services/realtime_service.dart';
 import '../services/active_member_service.dart';
 import '../services/image_upload_service.dart';
+import '../utils/music_apps.dart';
+import '../utils/music_launcher.dart';
 import '../utils/permissions.dart';
 import 'chore_detail_screen.dart';
 
@@ -261,6 +263,35 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
     ).then((_) => _loadData());
   }
 
+  // ─── Batch 8.1: floating music shortcut (kid-only) ──────────────────────
+  //
+  // Same flow as profile_screen's `_playMusic`:
+  //   1. No preference set → open the picker directly (this FAB is itself
+  //      the launcher entry, so we skip the "Choose first" SnackBar — the
+  //      sheet itself is the prompt).
+  //   2. Preference set → launch via URL scheme; fall back to App Store with
+  //      a SnackBar warning if the app isn't installed.
+  Future<void> _playMusic() async {
+    final memberId = _myMembership?['id'] as String?;
+    if (memberId == null) return;
+    final info = MusicAppInfo.fromDbValue(
+      _myMembership?['music_app_preference'] as String?,
+    );
+    if (info == null) {
+      final picked =
+          await pickAndSaveMusicApp(context, memberId: memberId);
+      if (picked == null || !mounted) return;
+      setState(() {
+        _myMembership = {
+          ..._myMembership!,
+          'music_app_preference': picked.dbValue,
+        };
+      });
+      return;
+    }
+    await launchMusicApp(context, info);
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -283,15 +314,17 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildError()
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+                  ? _buildError()
+                  : RefreshIndicator(
+                      onRefresh: _loadData,
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
                       // Stats row. The Verify card moved to home_shell's
                       // AppBar inbox badge in Batch 5b-i; admins reach all
                       // pending items via the unified Approvals screen.
@@ -346,6 +379,27 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
                     ],
                   ),
                 ),
+          // Batch 8.1 — bottom-left floating music shortcut. Kid-only.
+          // Wrapped in SafeArea so it respects the device's bottom inset and
+          // doesn't get clipped by the bottom nav bar. Positioned at bottom-
+          // left while the Scaffold's `floatingActionButton` slot keeps the
+          // admin "Add Chore" FAB at its default bottom-right home.
+          if (Permissions.isKid(_myMembership))
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: SafeArea(
+                child: FloatingActionButton.small(
+                  heroTag: 'chores-music-fab',
+                  onPressed: _playMusic,
+                  backgroundColor: AppColors.honeyGold,
+                  tooltip: 'Play music',
+                  child: const Icon(Icons.music_note, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
       floatingActionButton: _household != null
           ? FloatingActionButton.extended(
               heroTag: 'chores-fab',
