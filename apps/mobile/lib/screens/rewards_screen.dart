@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 
 /// Rewards screen with reward catalog, redemption, and history.
@@ -25,32 +27,41 @@ class _RewardsScreenState extends State<RewardsScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-i — CRITICAL: this screen reads `points_balance` and writes
+      // redemption rows attributed to `_myMembership['id']`. Without the
+      // helper, kid redemptions would debit the parent admin's balance and
+      // attribute the redemption row to the admin. The helper makes both
+      // numbers (display + write attribution) the kid's own.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
 
       final rewards = await Supabase.instance.client
@@ -73,6 +84,7 @@ class _RewardsScreenState extends State<RewardsScreen>
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('rewards load failed: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

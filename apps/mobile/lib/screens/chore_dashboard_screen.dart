@@ -299,7 +299,7 @@ class _ChoreDashboardScreenState extends State<ChoreDashboardScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_household?['name'] != null ? '${_household!['name']} 🐝' : 'Today\'s Chores 🐝'),
+        title: const Text("Today's Chores 🐝"),
         actions: [
           if (_household != null)
             IconButton(

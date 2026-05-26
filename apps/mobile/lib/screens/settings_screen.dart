@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/active_member_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 import '../main.dart';
 import 'profile_screen.dart';
@@ -34,28 +36,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  /// Profile switch reloads silently. No persistent TextEditingController is
+  /// held in this State class — the only controller (display-name edit) lives
+  /// inside `_showEditProfileSheet`'s bottom sheet scope. A mid-sheet profile
+  /// switch is a pre-existing edge case (the in-flight Save would attribute
+  /// to whichever member is active when the user taps Save); documented in
+  /// the 7a-i implementation report. Not introduced by this migration.
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-i — MembershipHelper so notification_preferences read/write
+      // and display-name edit attribute to the active member, not the parent
+      // admin. Each kid sub_profile should have its own prefs row.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
 
-      // Load profile
+      // Load profile (the JWT-holder's profile row, which is always the
+      // parent admin's; kids don't have profiles rows since they have no
+      // auth_user_id). This is intentional — the profile screen is the JWT
+      // holder's account, not the active sub_profile's.
+      final user = Supabase.instance.client.auth.currentUser!;
       final profiles = await Supabase.instance.client
           .from('profiles')
           .select('*')
@@ -66,7 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _profile = profiles[0];
       }
 
-      // Load notification preferences
+      // Load notification preferences scoped to the active member.
       final prefs = await Supabase.instance.client
           .from('notification_preferences')
           .select('*')
@@ -86,6 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       setState(() => _isLoading = false);
     } catch (e) {
+      debugPrint('settings load failed: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

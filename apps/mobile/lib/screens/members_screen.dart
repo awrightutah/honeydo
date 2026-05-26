@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../shared/utils/invite_code.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 import 'member_profile_screen.dart';
 
@@ -25,24 +27,39 @@ class _MembersScreenState extends State<MembersScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
+      // Batch 7a-i — MembershipHelper so admin-gated affordances reflect the
+      // active member (not the parent admin). `Permissions.canManageMembers`
+      // call sites in build() rely on _myMembership being the right actor.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
 
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
+      if (membership == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      if (memberships.isEmpty) return;
-
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
 
       final members = await Supabase.instance.client
           .from('household_members')
@@ -55,7 +72,8 @@ class _MembersScreenState extends State<MembersScreen> {
         _members = List<Map<String, dynamic>>.from(members);
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('members load failed: $e');
       setState(() => _isLoading = false);
     }
   }

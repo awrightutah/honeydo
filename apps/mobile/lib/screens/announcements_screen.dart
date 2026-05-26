@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/active_member_service.dart';
+import '../utils/membership.dart';
 import '../utils/permissions.dart';
 
 /// Screen for managing household announcements/pinned messages.
@@ -24,22 +26,32 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
+  }
+
+  @override
+  void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
+    super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-
-      // Get household info
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isNotEmpty) {
-        _myMembership = memberships[0];
-        _household = memberships[0]['households'];
+      // Batch 7a-i — MembershipHelper resolves to the active kid sub_profile
+      // when one is selected, so `_isAdmin` and the `created_by_member_id`
+      // attribution on writes are correct for the current actor.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership != null) {
+        _myMembership = membership;
+        _household = membership['households'];
         _isAdmin = Permissions.canManageAnnouncements(_myMembership);
 
         // Load announcements
@@ -54,8 +66,11 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           _announcements = List<Map<String, dynamic>>.from(announcements);
           _isLoading = false;
         });
+      } else {
+        setState(() => _isLoading = false);
       }
     } catch (e) {
+      debugPrint('announcements load failed: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

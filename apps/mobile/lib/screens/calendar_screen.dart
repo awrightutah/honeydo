@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/active_member_service.dart';
 import '../services/realtime_service.dart';
+import '../utils/membership.dart';
 
 /// Full calendar screen with month view, custom tags/colors,
 /// event creation, tag filtering, and shared reminders.
@@ -34,11 +36,15 @@ class _CalendarScreenState extends State<CalendarScreen>
     _selectedDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     _loadData();
     RealtimeService.instance.choresVersion.addListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
     RealtimeService.instance.choresVersion.removeListener(_onRealtimeUpdate);
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
     super.dispose();
   }
 
@@ -46,24 +52,27 @@ class _CalendarScreenState extends State<CalendarScreen>
     if (mounted) _loadData();
   }
 
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isEmpty) {
+      // Batch 7a-i — MembershipHelper so event creation gets attributed to
+      // the active member (`created_by_member_id` in `_AddEventSheet`) rather
+      // than silently coercing to the parent admin.
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      _myMembership = memberships[0];
-      _household = memberships[0]['households'];
+      _myMembership = membership;
+      _household = membership['households'];
       final householdId = _household!['id'];
 
       final results = await Future.wait([
@@ -84,7 +93,8 @@ class _CalendarScreenState extends State<CalendarScreen>
       _members = List<Map<String, dynamic>>.from(results[1]);
 
       await _loadEvents();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('calendar load failed: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

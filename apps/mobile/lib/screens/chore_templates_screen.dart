@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/active_member_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/membership.dart';
 
 class ChoreTemplatesScreen extends StatefulWidget {
   const ChoreTemplatesScreen({super.key});
@@ -22,28 +24,36 @@ class _ChoreTemplatesScreenState extends State<ChoreTemplatesScreen> {
   void initState() {
     super.initState();
     _loadData();
+    ActiveMemberService.instance.activeMemberId
+        .addListener(_onActiveMemberChanged);
   }
 
   @override
   void dispose() {
+    ActiveMemberService.instance.activeMemberId
+        .removeListener(_onActiveMemberChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onActiveMemberChanged() {
+    if (mounted) _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-      final memberships = await Supabase.instance.client
-          .from('household_members')
-          .select('*, households(*)')
-          .eq('auth_user_id', user.id)
-          .limit(1);
-
-      if (memberships.isNotEmpty) {
-        _myMembership = memberships[0];
-        _household = memberships[0]['households'];
+      // Batch 7a-i — MembershipHelper so template `created_by_member_id` on
+      // writes attributes to the active member, not the parent admin.
+      // (Templates are admin-only in practice today; the menu-entry gating
+      // is an orthogonal followup tracked from the 7a investigation.)
+      final membership = await MembershipHelper.loadActiveMembership(
+        includeHouseholdJoin: true,
+      );
+      if (membership != null) {
+        _myMembership = membership;
+        _household = membership['households'];
       }
 
       final householdId = _household?['id'];
@@ -56,10 +66,11 @@ class _ChoreTemplatesScreenState extends State<ChoreTemplatesScreen> {
           .order('title');
 
       setState(() => _templates = List<Map<String, dynamic>>.from(templates));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('chore_templates load failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load templates.')),
+          SnackBar(content: Text('Could not load templates: $e')),
         );
       }
     } finally {
