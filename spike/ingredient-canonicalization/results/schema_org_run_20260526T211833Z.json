@@ -1,0 +1,1157 @@
+{
+  "approach": "schema_org",
+  "timestamp": "20260526T211833Z",
+  "summary": {
+    "total": 17,
+    "successful_extractions": 8,
+    "partial_extractions": 0,
+    "failures": 9,
+    "by_source_type": {
+      "major_site": {
+        "full": 0,
+        "partial": 0,
+        "fail": 4
+      },
+      "food_blog": {
+        "full": 4,
+        "partial": 0,
+        "fail": 2
+      },
+      "random_blog": {
+        "full": 4,
+        "partial": 0,
+        "fail": 1
+      },
+      "non_standard": {
+        "full": 0,
+        "partial": 0,
+        "fail": 2
+      }
+    }
+  },
+  "results": [
+    {
+      "id": 1,
+      "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "latency_ms": 219
+    },
+    {
+      "id": 2,
+      "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "latency_ms": 148
+    },
+    {
+      "id": 3,
+      "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "latency_ms": 242
+    },
+    {
+      "id": 4,
+      "url": "https://40aprons.com/marry-me-chicken/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Marry Me Chicken (In a Sun-Dried Tomato Cream Sauce)",
+      "ingredients": [
+        {
+          "name": "boneless, skinless chicken breasts",
+          "unit": "lb",
+          "quantity": "3",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "salt (to taste)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "freshly cracked black pepper (to taste)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "olive oil (or other neutral oil)",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "minced garlic",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "low-sodium chicken broth (see Notes)",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "heavy cream (at room temperature)",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "grated fresh parmesan cheese (at room temperature, see Notes)",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "sun-dried tomatoes (preferably packed in oil)",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "dried oregano (more or less to taste)",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "crushed red pepper flakes (more or less to taste)",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "chiffonaded fresh basil",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "grated fresh parmesan cheese",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        }
+      ],
+      "raw_response": {
+        "name": "Marry Me Chicken (In a Sun-Dried Tomato Cream Sauce)",
+        "recipeIngredient": [
+          "3 pounds boneless, skinless chicken breasts",
+          "salt (to taste)",
+          "freshly cracked black pepper (to taste)",
+          "2 tablespoons olive oil (or other neutral oil)",
+          "2 tablespoons minced garlic",
+          "¾ cup low-sodium chicken broth (see Notes)",
+          "½ cup heavy cream (at room temperature)",
+          "½ cup grated fresh parmesan cheese (at room temperature, see Notes)",
+          "1 cup sun-dried tomatoes (preferably packed in oil)",
+          "1 teaspoon dried oregano (more or less to taste)",
+          "½ teaspoon crushed red pepper flakes (more or less to taste)",
+          "chiffonaded fresh basil",
+          "grated fresh parmesan cheese"
+        ],
+        "recipeYield": [
+          "6",
+          "6 servings"
+        ],
+        "totalTime": "PT45M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 401
+    },
+    {
+      "id": 5,
+      "url": "https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+      "source_type": "major_site",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "HTTPError",
+      "error_message": "404 Client Error: Not Found for url: https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+      "latency_ms": 280
+    },
+    {
+      "id": 6,
+      "url": "https://smittenkitchen.com/2017/04/big-crumb-coffee-cake/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "NoRecipeSchema",
+      "error_message": "No <script type='application/ld+json'> with a Recipe entity on the page",
+      "latency_ms": 553
+    },
+    {
+      "id": 7,
+      "url": "https://www.halfbakedharvest.com/40-easy-dinner-recipes-for-busy-weeknights/",
+      "source_type": "food_blog",
+      "edge_case": "roundup_post",
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "NoRecipeSchema",
+      "error_message": "No <script type='application/ld+json'> with a Recipe entity on the page",
+      "latency_ms": 308
+    },
+    {
+      "id": 8,
+      "url": "https://sallysbakingaddiction.com/chocolate-chip-cookies/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "The Best Soft Chocolate Chip Cookies",
+      "ingredients": [
+        {
+          "name": "(12 Tbsp; 170g) unsalted butter, softened to room temperature",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "(150g) packed light or dark brown sugar",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "(50g) granulated sugar",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "large egg, at room temperature",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "pure vanilla extract",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "(250g) all-purpose flour (spooned &amp; leveled)",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "cornstarch",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "baking soda",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "salt",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "and 1/4 cup (225g) semi-sweet chocolate chips",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        }
+      ],
+      "raw_response": {
+        "name": "The Best Soft Chocolate Chip Cookies",
+        "recipeIngredient": [
+          "3/4 cup (12 Tbsp; 170g) unsalted butter, softened to room temperature",
+          "3/4 cup (150g) packed light or dark brown sugar",
+          "1/4 cup (50g) granulated sugar",
+          "1 large egg, at room temperature",
+          "2 teaspoons pure vanilla extract",
+          "2 cups (250g) all-purpose flour (spooned &amp; leveled)",
+          "2 teaspoons cornstarch",
+          "1 teaspoon baking soda",
+          "1/2 teaspoon salt",
+          "1 and 1/4 cup (225g) semi-sweet chocolate chips"
+        ],
+        "recipeYield": [
+          "2",
+          "2 dozen"
+        ],
+        "totalTime": "PT1H30M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 367
+    },
+    {
+      "id": 9,
+      "url": "https://minimalistbaker.com/1-bowl-vegan-gluten-free-chocolate-cake/",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "1-Bowl Vegan Gluten-Free Chocolate Cake",
+      "ingredients": [
+        {
+          "name": "mashed ripe banana  ((~2 small bananas as original recipe is written))",
+          "unit": "cup",
+          "quantity": "0.6666666666666666",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "unsweetened applesauce ((sub dairy-free yogurt for richer texture // we love Culina plain yogurt))",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "pure vanilla extract",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "almond butter  ((or sub peanut butter, cashew butter, tahini, or sunflower butter))",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "maple syrup",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "coconut sugar",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "0.5 tsp baking powder",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "0.5 tsp baking soda",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "sea salt  ((optional))",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "0.25 cup dairy-free milk  ((we used boxed unsweetened almond milk // cashew or rice milk would also work))",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "sifted cocoa powder",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "potato starch  ((NOT potato flour // some readers have had success subbing 1/2 arrowroot starch, 1/2 coconut flour))",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "0.5 cups almond flour",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "1-2 tsp finely ground espresso powder or dark roast coffee ((optional // enhances chocolate flavor))",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "Vegan Chocolate Ganache",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "Vegan Chocolate Frosting (Oil-Free)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        }
+      ],
+      "raw_response": {
+        "name": "1-Bowl Vegan Gluten-Free Chocolate Cake",
+        "recipeIngredient": [
+          "2/3 cup mashed ripe banana  ((~2 small bananas as original recipe is written))",
+          "1/4 cup unsweetened applesauce ((sub dairy-free yogurt for richer texture // we love Culina plain yogurt))",
+          "1 tsp pure vanilla extract",
+          "2 Tbsp almond butter  ((or sub peanut butter, cashew butter, tahini, or sunflower butter))",
+          "3/4 cup maple syrup",
+          "1/2 cup coconut sugar",
+          "1 ½ tsp baking powder",
+          "1 ½ tsp baking soda",
+          "1/2 tsp sea salt  ((optional))",
+          "1 ¼ cup dairy-free milk  ((we used boxed unsweetened almond milk // cashew or rice milk would also work))",
+          "1 cup sifted cocoa powder",
+          "1 cup potato starch  ((NOT potato flour // some readers have had success subbing 1/2 arrowroot starch, 1/2 coconut flour))",
+          "2 ½ cups almond flour",
+          "1-2 tsp finely ground espresso powder or dark roast coffee ((optional // enhances chocolate flavor))",
+          "Vegan Chocolate Ganache",
+          "Vegan Chocolate Frosting (Oil-Free)"
+        ],
+        "recipeYield": [
+          "14",
+          "14 (Slices)"
+        ],
+        "totalTime": "PT55M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 436
+    },
+    {
+      "id": 10,
+      "url": "https://pinchofyum.com/the-best-detox-crockpot-lentil-soup",
+      "source_type": "food_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "The Best Detox Crockpot Lentil Soup",
+      "ingredients": [
+        {
+          "name": "butternut squash (peeled and cubed)",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "carrots (peeled and sliced)",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "potatoes (chopped)",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "celery (chopped)",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "green lentils",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "yellow split peas (or just use more lentils)",
+          "unit": "cup",
+          "quantity": "0.75",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "onion (chopped)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "garlic (minced)",
+          "unit": "cloves",
+          "quantity": "5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "8-10 cups vegetable or chicken broth",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "herbs de provence",
+          "unit": "tsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "salt (more to taste)",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "2-3 cups kale (stems removed, chopped)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "parsley (chopped)",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "olive oil &#8211; rosemary olive oil or other herb infused oil is delicious",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "a swish of sherry, red wine vinegar, or lemon juice to add a nice tangy bite",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        }
+      ],
+      "raw_response": {
+        "name": "The Best Detox Crockpot Lentil Soup",
+        "recipeIngredient": [
+          "2 cups butternut squash (peeled and cubed)",
+          "2 cups carrots (peeled and sliced)",
+          "2 cups potatoes (chopped)",
+          "2 cups celery (chopped)",
+          "1 cup green lentils",
+          "3/4 cup yellow split peas (or just use more lentils)",
+          "1 onion (chopped)",
+          "5 cloves garlic (minced)",
+          "8-10 cups vegetable or chicken broth",
+          "2 teaspoons herbs de provence",
+          "1 teaspoon salt (more to taste)",
+          "2-3 cups kale (stems removed, chopped)",
+          "1 cup parsley (chopped)",
+          "1/2 cup olive oil &#8211; rosemary olive oil or other herb infused oil is delicious",
+          "a swish of sherry, red wine vinegar, or lemon juice to add a nice tangy bite"
+        ],
+        "recipeYield": [
+          "8",
+          "8 servings"
+        ],
+        "totalTime": "PT6H30M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 374
+    },
+    {
+      "id": 11,
+      "url": "https://therecipecritic.com/butter-garlic-herb-steak-foil-packets/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Butter Garlic Herb Steak Foil Packets",
+      "ingredients": [
+        {
+          "name": "small red potatoes (cut into fourths)",
+          "unit": "lb",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "medium carrots (sliced)",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "red bell pepper (cubed)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "green bell pepper (cubed)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "red onion (cut into cubes)",
+          "unit": "count",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "salt and pepper",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "olive oil",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "top sirloin steak (cut into one inch cubes*)",
+          "unit": "lb",
+          "quantity": "1.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "butter (room temperature)",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "freshly chopped parsley",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "garlic cloves (minced)",
+          "unit": "count",
+          "quantity": "4",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "fresh rosemary (chopped)",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "fresh thyme (chopped)",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "salt",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "pepper",
+          "unit": "tsp",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        }
+      ],
+      "raw_response": {
+        "name": "Butter Garlic Herb Steak Foil Packets",
+        "recipeIngredient": [
+          "1 pound small red potatoes (cut into fourths)",
+          "2 medium carrots (sliced)",
+          "1  red bell pepper (cubed)",
+          "1  green bell pepper (cubed)",
+          "1/2  red onion (cut into cubes)",
+          "salt and pepper",
+          "1 Tablespoon olive oil",
+          "1 1/2 pound top sirloin steak (cut into one inch cubes*)",
+          "1/2 cup butter (room temperature)",
+          "1/4 cup freshly chopped parsley",
+          "4  garlic cloves (minced)",
+          "1 teaspoon fresh rosemary (chopped)",
+          "1 teaspoon fresh thyme (chopped)",
+          "1/2 teaspoon salt",
+          "1/4 teaspoon pepper"
+        ],
+        "recipeYield": [
+          "4",
+          "4 packets"
+        ],
+        "totalTime": "PT30M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 252
+    },
+    {
+      "id": 12,
+      "url": "https://www.recipetineats.com/chicken-marsala/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Chicken Marsala",
+      "ingredients": [
+        {
+          "name": "large chicken breasts ((300g/10oz each), cut in half horizontally (or 4 thighs, Note 1))",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "cooking salt / kosher salt",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "black pepper",
+          "unit": "tsp",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "flour (, plain/all-purpose)",
+          "unit": "cup",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "extra virgin olive oil",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "/ 30g  unsalted butter",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "eschalots ((US: shallots), peeled and cut into 1cm / 1/3\" squares (Note 2))",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "garlic (, finely minced)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "white mushrooms (, sliced 0.5cm / 1/5&quot; thick)",
+          "unit": "cup",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "dry marsala wine ((Note 3))",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "chicken stock/broth (, low sodium)",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "thickened / heavy cream ( (Note 4))",
+          "unit": "cup",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "cooking salt / kosher salt",
+          "unit": "tsp",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "black pepper",
+          "unit": "tsp",
+          "quantity": "0.125",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "finely chopped parsley (, for garnish (optional))",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        }
+      ],
+      "raw_response": {
+        "name": "Chicken Marsala",
+        "recipeIngredient": [
+          "2 large chicken breasts ((300g/10oz each), cut in half horizontally (or 4 thighs, Note 1))",
+          "1/2 tsp cooking salt / kosher salt",
+          "1/2 tsp black pepper",
+          "1/4 cup flour (, plain/all-purpose)",
+          "2 tbsp extra virgin olive oil",
+          "2 tbsp / 30g  unsalted butter",
+          "2  eschalots ((US: shallots), peeled and cut into 1cm / 1/3\" squares (Note 2))",
+          "1  garlic (, finely minced)",
+          "2 cups white mushrooms (, sliced 0.5cm / 1/5&quot; thick)",
+          "1 cup dry marsala wine ((Note 3))",
+          "1/2 cup chicken stock/broth (, low sodium)",
+          "1/2 cup thickened / heavy cream ( (Note 4))",
+          "1/4 tsp cooking salt / kosher salt",
+          "1/8 tsp black pepper",
+          "1 tbsp finely chopped parsley (, for garnish (optional))"
+        ],
+        "recipeYield": [
+          "4"
+        ],
+        "totalTime": null,
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 1662
+    },
+    {
+      "id": 13,
+      "url": "https://www.skinnytaste.com/air-fryer-chicken-flautas/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Air Fryer Chicken Flautas",
+      "ingredients": [
+        {
+          "name": "cooked chicken breast (rotisserie or plain, shredded)",
+          "unit": "oz",
+          "quantity": "12",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "lime (Juice from)",
+          "unit": "count",
+          "quantity": "0.5",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "large garlic clove (minced)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "ground cumin",
+          "unit": "tsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "4-ounce can   mild diced green chilies, drained",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "pepper jack cheese (shredded )",
+          "unit": "cup",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "6-inch  flour tortillas",
+          "unit": "count",
+          "quantity": "12",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "Olive oil spray",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        },
+        {
+          "name": "Top off your chicken flautas with pico de gallo (sour cream, shredded lettuce, Mexican crema or sour cream fresh cilantro, and more)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "name_only"
+        }
+      ],
+      "raw_response": {
+        "name": "Air Fryer Chicken Flautas",
+        "recipeIngredient": [
+          "12 ounces cooked chicken breast (rotisserie or plain, shredded)",
+          "1/2  lime (Juice from)",
+          "1 large  garlic clove (minced)",
+          "1 teaspoon ground cumin",
+          "1 4-ounce can   mild diced green chilies, drained",
+          "1 cup pepper jack cheese (shredded )",
+          "12 6-inch  flour tortillas",
+          "Olive oil spray",
+          "Top off your chicken flautas with pico de gallo (sour cream, shredded lettuce, Mexican crema or sour cream fresh cilantro, and more)"
+        ],
+        "recipeYield": [
+          "6",
+          "6 servings"
+        ],
+        "totalTime": "PT36M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 391
+    },
+    {
+      "id": 14,
+      "url": "https://www.budgetbytes.com/dragon-noodles/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": true,
+      "title": "Spicy Sriracha Noodles",
+      "ingredients": [
+        {
+          "name": "oz. lo mein noodles  ($1.30)",
+          "unit": "count",
+          "quantity": "4",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "butter  ($0.20)",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "crushed red pepper  ($0.02)",
+          "unit": "tsp",
+          "quantity": "0.25",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "large eggs ($0.42)",
+          "unit": "count",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "brown sugar ($0.08)",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "soy sauce  ($0.06)",
+          "unit": "tbsp",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "sriracha ($0.22)",
+          "unit": "tbsp",
+          "quantity": "2",
+          "category": "Other",
+          "_parse_quality": "full"
+        },
+        {
+          "name": "handful fresh cilantro  (optional, $0.10)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        },
+        {
+          "name": "green onion, sliced  ($0.10)",
+          "unit": "count",
+          "quantity": "1",
+          "category": "Other",
+          "_parse_quality": "qty_only"
+        }
+      ],
+      "raw_response": {
+        "name": "Spicy Sriracha Noodles",
+        "recipeIngredient": [
+          "4 oz. lo mein noodles  ($1.30)",
+          "2 Tbsp butter  ($0.20)",
+          "1/4 tsp crushed red pepper  ($0.02)",
+          "2 large eggs ($0.42)",
+          "1 Tbsp brown sugar ($0.08)",
+          "1 Tbsp soy sauce  ($0.06)",
+          "2 Tbsp sriracha ($0.22)",
+          "1 handful fresh cilantro  (optional, $0.10)",
+          "1  green onion, sliced  ($0.10)"
+        ],
+        "recipeYield": [
+          "2"
+        ],
+        "totalTime": "PT15M",
+        "@type": "Recipe"
+      },
+      "error_type": null,
+      "error_message": null,
+      "latency_ms": 432
+    },
+    {
+      "id": 15,
+      "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+      "source_type": "random_blog",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "HTTPError",
+      "error_message": "403 Client Error: Forbidden for url: https://damndelicious.net/2025/09/12/chicken-divan/",
+      "latency_ms": 148
+    },
+    {
+      "id": 16,
+      "url": "https://www.pinterest.com/pin/3940717959896374/",
+      "source_type": "non_standard",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "NoRecipeSchema",
+      "error_message": "No <script type='application/ld+json'> with a Recipe entity on the page",
+      "latency_ms": 475
+    },
+    {
+      "id": 17,
+      "url": "https://www.instagram.com/p/Cz8mYBcOJqI/",
+      "source_type": "non_standard",
+      "edge_case": null,
+      "success": false,
+      "title": null,
+      "ingredients": [],
+      "raw_response": null,
+      "error_type": "NoRecipeSchema",
+      "error_message": "No <script type='application/ld+json'> with a Recipe entity on the page",
+      "latency_ms": 407
+    }
+  ]
+}
