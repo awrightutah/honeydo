@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets — pattern catches .env, .env.save, .env.backup, etc.
+.env*
+!.env.example
+
+# Playwright local browser cache (large, machine-specific)
+.playwright/
+playwright-browsers/
+
+# OS
+.DS_Store
