@@ -1,0 +1,4 @@
+requests>=2.31.0
+python-dotenv>=1.0.0
+recipe-scrapers>=15.0.0
+extruct>=0.16.0

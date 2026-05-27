@@ -1,0 +1,13 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets — ignore .env and any editor-backup variants (.env.save, .env.backup, .env~)
+# but keep .env.example committed so the next person knows what vars are expected.
+.env*
+!.env.example
+
+# OS
+.DS_Store

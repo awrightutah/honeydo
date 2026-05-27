@@ -1,0 +1,60 @@
+{
+  "timestamp": "20260527T170256Z",
+  "fetcher": "apify web-scraper (useApifyProxy=true)",
+  "run_id": "Jv6Atcr4tQGIsg3dP",
+  "final_status": "SUCCEEDED",
+  "total_urls": 4,
+  "fetch_ok": 0,
+  "schema_org_ok": 0,
+  "recipe_scrapers_ok": 0,
+  "results": [
+    {
+      "id": 1,
+      "source_type": "major_site",
+      "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "fetch": {
+        "ok": false,
+        "html_bytes": 0,
+        "error": "no item in dataset"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    },
+    {
+      "id": 2,
+      "source_type": "major_site",
+      "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "fetch": {
+        "ok": false,
+        "html_bytes": 0,
+        "error": "no item in dataset"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    },
+    {
+      "id": 3,
+      "source_type": "major_site",
+      "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "fetch": {
+        "ok": false,
+        "html_bytes": 0,
+        "error": "no item in dataset"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    },
+    {
+      "id": 15,
+      "source_type": "random_blog",
+      "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+      "fetch": {
+        "ok": false,
+        "html_bytes": 0,
+        "error": "no item in dataset"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    }
+  ]
+}
