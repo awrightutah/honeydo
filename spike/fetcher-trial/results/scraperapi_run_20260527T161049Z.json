@@ -1,0 +1,100 @@
+{
+  "timestamp": "20260527T161049Z",
+  "fetcher": "scraperapi (render=true)",
+  "total_urls": 5,
+  "fetch_ok": 2,
+  "schema_org_ok": 1,
+  "recipe_scrapers_ok": 1,
+  "results": [
+    {
+      "id": 1,
+      "source_type": "major_site",
+      "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "fetch": {
+        "ok": true,
+        "status_code": 200,
+        "duration_seconds": 20.22,
+        "html_bytes": 17859,
+        "error": null
+      },
+      "schema_org": {
+        "ok": false,
+        "ingredient_count": 0,
+        "title": null,
+        "error": "no Recipe JSON-LD found"
+      },
+      "recipe_scrapers": {
+        "ok": false,
+        "ingredient_count": 0,
+        "title": null,
+        "error": "RecipeSchemaNotFound: recipe-scrapers (15.10.0) exception: No Recipe Schema found at https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/."
+      }
+    },
+    {
+      "id": 2,
+      "source_type": "major_site",
+      "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "fetch": {
+        "ok": true,
+        "status_code": 200,
+        "duration_seconds": 24.77,
+        "html_bytes": 485253,
+        "error": null
+      },
+      "schema_org": {
+        "ok": true,
+        "ingredient_count": 18,
+        "title": "Beatty's Chocolate Cake",
+        "error": null
+      },
+      "recipe_scrapers": {
+        "ok": true,
+        "ingredient_count": 18,
+        "title": "Beatty's Chocolate Cake",
+        "error": null
+      }
+    },
+    {
+      "id": 3,
+      "source_type": "major_site",
+      "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "fetch": {
+        "ok": false,
+        "status_code": 500,
+        "duration_seconds": 56.28,
+        "html_bytes": 208,
+        "error": "HTTP 500"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    },
+    {
+      "id": 5,
+      "source_type": "major_site",
+      "url": "https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+      "fetch": {
+        "ok": false,
+        "status_code": 404,
+        "duration_seconds": 21.13,
+        "html_bytes": 331919,
+        "error": "HTTP 404"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    },
+    {
+      "id": 15,
+      "source_type": "random_blog",
+      "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+      "fetch": {
+        "ok": false,
+        "status_code": 500,
+        "duration_seconds": 56.34,
+        "html_bytes": 208,
+        "error": "HTTP 500"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    }
+  ]
+}

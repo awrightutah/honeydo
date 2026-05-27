@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+    "source_type": "major_site",
+    "expected_to_work_with": [
+      "schema_org",
+      "recipe_scrapers",
+      "claude_api"
+    ],
+    "confidence": "high",
+    "notes": "Recipe ID 10813 stable since the early 2000s. Comprehensive schema.org/Recipe markup. recipe-scrapers explicitly supports allrecipes.com."
+  },
+  {
+    "id": 2,
+    "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+    "source_type": "major_site",
+    "expected_to_work_with": [
+      "schema_org",
+      "recipe_scrapers",
+      "claude_api"
+    ],
+    "confidence": "high",
+    "notes": "Ina Garten classic. Embedded JSON-LD. recipe-scrapers supports foodnetwork.com."
+  },
+  {
+    "id": 3,
+    "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+    "source_type": "major_site",
+    "expected_to_work_with": [
+      "schema_org",
+      "recipe_scrapers",
+      "claude_api"
+    ],
+    "confidence": "high",
+    "notes": "Kenji L\u00f3pez-Alt's Food Lab cookies. Serious Eats has been a recipe-scrapers reference site for years."
+  },
+  {
+    "id": 5,
+    "url": "https://www.kingarthurbaking.com/recipes/king-arthur-classic-white-bread-recipe",
+    "source_type": "major_site",
+    "expected_to_work_with": [
+      "schema_org",
+      "recipe_scrapers",
+      "claude_api"
+    ],
+    "confidence": "high",
+    "notes": "King Arthur Baking flagship site. Strong structured data. Stable URL slug."
+  },
+  {
+    "id": 15,
+    "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+    "source_type": "random_blog",
+    "expected_to_work_with": [
+      "schema_org",
+      "recipe_scrapers",
+      "claude_api"
+    ],
+    "confidence": "high",
+    "notes": "Replaces the original 2019 chicken noodle soup (404'd). Damn Delicious uses date-based URLs. Recent (2025-09) post. WP Recipe Maker \u2192 schema.org expected."
+  }
+]
