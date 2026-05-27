@@ -1,0 +1,96 @@
+{
+  "timestamp": "20260527T180522Z",
+  "fetcher": "self-hosted playwright (chromium, headless, residential IP)",
+  "total_urls": 4,
+  "fetch_ok": 3,
+  "schema_org_ok": 3,
+  "recipe_scrapers_ok": 3,
+  "results": [
+    {
+      "id": 1,
+      "source_type": "major_site",
+      "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+      "fetch": {
+        "ok": true,
+        "status_code": 200,
+        "duration_seconds": 15.89,
+        "html_bytes": 1875238,
+        "error": null
+      },
+      "schema_org": {
+        "ok": true,
+        "ingredient_count": 11,
+        "title": "Best Chocolate Chip Cookies",
+        "error": null
+      },
+      "recipe_scrapers": {
+        "ok": true,
+        "ingredient_count": 11,
+        "title": "Best Chocolate Chip Cookies",
+        "error": null
+      }
+    },
+    {
+      "id": 2,
+      "source_type": "major_site",
+      "url": "https://www.foodnetwork.com/recipes/ina-garten/beattys-chocolate-cake-recipe-1947521",
+      "fetch": {
+        "ok": true,
+        "status_code": 200,
+        "duration_seconds": 2.7,
+        "html_bytes": 669927,
+        "error": null
+      },
+      "schema_org": {
+        "ok": true,
+        "ingredient_count": 18,
+        "title": "Beatty's Chocolate Cake",
+        "error": null
+      },
+      "recipe_scrapers": {
+        "ok": true,
+        "ingredient_count": 18,
+        "title": "Beatty's Chocolate Cake",
+        "error": null
+      }
+    },
+    {
+      "id": 3,
+      "source_type": "major_site",
+      "url": "https://www.seriouseats.com/the-food-lab-the-best-chocolate-chip-cookies-recipe",
+      "fetch": {
+        "ok": false,
+        "status_code": 404,
+        "duration_seconds": 1.42,
+        "html_bytes": 167550,
+        "error": "HTTP 404"
+      },
+      "schema_org": null,
+      "recipe_scrapers": null
+    },
+    {
+      "id": 15,
+      "source_type": "random_blog",
+      "url": "https://damndelicious.net/2025/09/12/chicken-divan/",
+      "fetch": {
+        "ok": true,
+        "status_code": 200,
+        "duration_seconds": 15.47,
+        "html_bytes": 829079,
+        "error": null
+      },
+      "schema_org": {
+        "ok": true,
+        "ingredient_count": 17,
+        "title": "Chicken Divan",
+        "error": null
+      },
+      "recipe_scrapers": {
+        "ok": true,
+        "ingredient_count": 17,
+        "title": "Chicken Divan",
+        "error": null
+      }
+    }
+  ]
+}
