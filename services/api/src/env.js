@@ -11,6 +11,7 @@ const envSchema = z.object({
   AUTHORIZE_NET_API_LOGIN_ID: z.string().optional(),
   AUTHORIZE_NET_TRANSACTION_KEY: z.string().optional(),
   AUTHORIZE_NET_SIGNATURE_KEY: z.string().optional(),
+  ADMIN_SECRET: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -21,4 +22,5 @@ export const env = envSchema.parse({
   AUTHORIZE_NET_API_LOGIN_ID: process.env.AUTHORIZE_NET_API_LOGIN_ID,
   AUTHORIZE_NET_TRANSACTION_KEY: process.env.AUTHORIZE_NET_TRANSACTION_KEY,
   AUTHORIZE_NET_SIGNATURE_KEY: process.env.AUTHORIZE_NET_SIGNATURE_KEY,
+  ADMIN_SECRET: process.env.ADMIN_SECRET,
 });
