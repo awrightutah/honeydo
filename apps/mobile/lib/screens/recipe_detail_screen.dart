@@ -306,6 +306,87 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
+  Future<void> _shareToSharedLibrary() async {
+    if (_recipe == null) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final title = (_recipe!['title'] ?? '').toString().trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recipe needs a title to share')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share to Shared Library'),
+        content: const Text(
+          'This recipe will be submitted for review. Once approved, '
+          'other households will be able to add it to their library.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.grassGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Share'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await Supabase.instance.client.from('master_recipes').insert({
+        'title': title,
+        'description': _recipe!['description'],
+        'ingredients': _recipe!['ingredients'] ?? [],
+        'steps': _recipe!['steps'] ?? [],
+        'prep_time_minutes': _recipe!['prep_time_minutes'],
+        'cook_time_minutes': _recipe!['cook_time_minutes'],
+        'servings': _recipe!['servings'],
+        'difficulty': _recipe!['difficulty'],
+        'cuisine': _recipe!['cuisine'],
+        'tags': _recipe!['tags'] ?? [],
+        'image_url': _recipe!['image_url'],
+        'source_url': _recipe!['source_url'],
+        'calories_per_serving': _recipe!['calories_per_serving'],
+        'protein_g': _recipe!['protein_g'],
+        'carbs_g': _recipe!['carbs_g'],
+        'fat_g': _recipe!['fat_g'],
+        'submitted_by_user_id': user.id,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Submitted for review! Once approved, it will appear in the '
+              'Shared Library for everyone to add.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing recipe: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _addToMealPlan() async {
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
     String selectedMealType = 'dinner';
@@ -481,6 +562,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       case 'mealplan':
                         _addToMealPlan();
                         break;
+                      case 'share':
+                        _shareToSharedLibrary();
+                        break;
                       case 'delete':
                         _deleteRecipe();
                         break;
@@ -493,6 +577,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     if (!Permissions.isKid(_householdMember))
                       const PopupMenuItem(value: 'shopping', child: Row(children: [Icon(Icons.shopping_cart, size: 20), SizedBox(width: 12), Text('Add to Shopping List')])),
                     const PopupMenuItem(value: 'mealplan', child: Row(children: [Icon(Icons.calendar_month, size: 20), SizedBox(width: 12), Text('Add to Meal Plan')])),
+                    if (!Permissions.isKid(_householdMember) && _recipe?['source'] != 'master_library')
+                      const PopupMenuItem(value: 'share', child: Row(children: [Icon(Icons.public, size: 20), SizedBox(width: 12), Text('Share to Shared Library')])),
                     const PopupMenuDivider(),
                     const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 20, color: AppColors.coral), SizedBox(width: 12), Text('Delete Recipe', style: TextStyle(color: AppColors.coral))])),
                   ],
