@@ -27,7 +27,7 @@ app.get('/', (_req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Honeydo API</title>
+  <title>Clanquility API</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -112,7 +112,7 @@ app.get('/', (_req, res) => {
 <body>
   <div class="card">
     <div class="bee">🐝</div>
-    <h1>Honeydo API</h1>
+    <h1>Clanquility API</h1>
     <p class="tagline">Household chore management &amp; meal planning</p>
     <div class="status"><span class="dot"></span> Operational</div>
     <div class="endpoints">
@@ -132,7 +132,7 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/health', async (_req, res) => {
-  res.json({ ok: true, service: 'honeydo-api', environment: env.NODE_ENV, timestamp: new Date().toISOString() });
+  res.json({ ok: true, service: 'clanquility-api', environment: env.NODE_ENV, timestamp: new Date().toISOString() });
 });
 
 app.post('/webhooks/authorize-net', async (req, res) => {
@@ -459,7 +459,7 @@ function verifyAuthorizeNetSignature(rawBody, header) {
 }
 
 async function importRecipeFromUrl(url) {
-  const response = await fetch(url, { headers: { 'user-agent': 'HoneydoRecipeImporter/0.1' } });
+  const response = await fetch(url, { headers: { 'user-agent': 'ClanquilityRecipeImporter/0.1' } });
   if (!response.ok) throw new Error(`Failed to fetch recipe URL: ${response.status}`);
 
   const html = await response.text();
@@ -524,7 +524,7 @@ function normalizeRecipe(recipe, sourceUrl) {
 }
 
 app.listen(env.PORT, () => {
-  console.log(`Honeydo API listening on port ${env.PORT}`);
+  console.log(`Clanquility API listening on port ${env.PORT}`);
 });
 
 // ── Admin Endpoints ──────────────────────────────────────────────────────

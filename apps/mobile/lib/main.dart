@@ -61,7 +61,7 @@ class _HoneydoAppState extends State<HoneydoApp> {
       valueListenable: HoneydoApp.themeNotifier,
       builder: (context, currentMode, child) {
         return MaterialApp(
-          title: 'Honeydo',
+          title: 'Clanquility',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,

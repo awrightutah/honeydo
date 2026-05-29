@@ -1,4 +1,4 @@
-# honeydo_mobile
+# Clanquility Mobile
 
 A new Flutter project.
 

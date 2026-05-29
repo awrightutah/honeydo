@@ -112,7 +112,7 @@ class HomeTourSteps {
     TourStep(
       id: 'menu',
       title: 'More Features',
-      description: 'Tap the ⋯ menu to access your profile, household stats, invite codes, announcements, achievements, settings, and more. Explore everything Honeydo has to offer!',
+      description: 'Tap the ⋯ menu to access your profile, household stats, invite codes, announcements, achievements, settings, and more. Explore everything Clanquility has to offer!',
       icon: Icons.more_horiz_rounded,
       color: Colors.grey,
     ),

@@ -611,7 +611,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSectionHeader('About'),
           const ListTile(
             leading: Icon(Icons.info),
-            title: Text('Honeydo'),
+            title: Text('Clanquility'),
             subtitle: Text('Version 1.0.0'),
           ),
           ListTile(

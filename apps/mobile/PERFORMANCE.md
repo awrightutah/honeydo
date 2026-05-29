@@ -1,6 +1,6 @@
-# Honeydo Performance Optimization Guide
+# Clanquility Performance Optimization Guide
 
-This document lists all performance optimizations applied to the Honeydo mobile app.
+This document lists all performance optimizations applied to the Clanquility mobile app.
 
 ## Applied Optimizations
 

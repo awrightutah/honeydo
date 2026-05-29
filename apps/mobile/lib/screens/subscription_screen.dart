@@ -264,7 +264,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Honeydo Premium',
+            'Clanquility Premium',
             style: TextStyle(
               color: Colors.white,
               fontSize: 22,

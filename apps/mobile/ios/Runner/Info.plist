@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Honeydo Mobile</string>
+	<string>Clanquility</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Honeydo uses your camera to let kids submit photos when completing chores, and to take photos for profile avatars and recipes.</string>
+	<string>Clanquility uses your camera to let kids submit photos when completing chores, and to take photos for profile avatars and recipes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Honeydo uses your photo library to upload images for chore submissions, profile avatars, and recipes.</string>
+	<string>Clanquility uses your photo library to upload images for chore submissions, profile avatars, and recipes.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>spotify</string>

@@ -174,8 +174,8 @@ class _InviteManagementScreenState extends State<InviteManagementScreen> {
   }
 
   void _shareInviteCode(String code) {
-    final householdName = _household?['name'] ?? 'Honeydo';
-    final text = 'Join my household "$householdName" on Honeydo! 🐝\n\nInvite code: $code\n\nDownload Honeydo and enter this code to join.';
+    final householdName = _household?['name'] ?? 'Clanquility';
+    final text = 'Join my household "$householdName" on Clanquility! 🐝\n\nInvite code: $code\n\nDownload Clanquility and enter this code to join.';
 
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(

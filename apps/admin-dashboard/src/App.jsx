@@ -22,7 +22,7 @@ function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="logo"><span className="logo-mark">🐝</span> Honeydo</div>
+        <div className="logo"><span className="logo-mark">🐝</span> Clanquility</div>
         {sections.map((section) => {
           const Icon = section.icon;
           return (
