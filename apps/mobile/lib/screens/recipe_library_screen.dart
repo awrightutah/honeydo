@@ -431,15 +431,24 @@ class _RecipeLibraryScreenState extends State<RecipeLibraryScreen>
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['error'] ?? 'Import failed')),
+              const SnackBar(
+                content: Text(
+                  "Couldn't import from that URL. Some sites block automated fetching. "
+                  "Try a different recipe URL or use 'Add Recipe' to enter it manually.",
+                ),
+              ),
             );
           }
         }
       } else {
-        final error = jsonDecode(response.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error['error'] ?? 'Import failed')),
+            const SnackBar(
+              content: Text(
+                "Couldn't import from that URL. Some sites block automated fetching. "
+                "Try a different recipe URL or use 'Add Recipe' to enter it manually.",
+              ),
+            ),
           );
         }
       }

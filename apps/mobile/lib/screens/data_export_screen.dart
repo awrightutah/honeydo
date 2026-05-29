@@ -158,7 +158,7 @@ class _DataExportScreenState extends State<DataExportScreen> {
       }
       if (_sections['Recipes']!) {
         data['recipes'] = await _supabase
-            .from('recipes')
+            .from('household_recipes')
             .select('*')
             .eq('household_id', householdId);
       }
