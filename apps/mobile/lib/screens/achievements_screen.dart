@@ -23,7 +23,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     {'badge_key': 'first_chore', 'badge_name': 'First Chore', 'icon': '🎉', 'description': 'Completed your very first chore!', 'threshold': 1, 'category': 'chores'},
     {'badge_key': 'getting_started', 'badge_name': 'Getting Started', 'icon': '⭐', 'description': 'Completed 5 chores!', 'threshold': 5, 'category': 'chores'},
     {'badge_key': 'chore_champion', 'badge_name': 'Chore Champion', 'icon': '🏆', 'description': 'Completed 25 chores!', 'threshold': 25, 'category': 'chores'},
-    {'badge_key': 'honeydo_hero', 'badge_name': 'Honeydo Hero', 'icon': '🤸', 'description': 'Completed 100 chores!', 'threshold': 100, 'category': 'chores'},
+    {'badge_key': 'honeydo_hero', 'badge_name': 'Clanquility Hero', 'icon': '🤸', 'description': 'Completed 100 chores!', 'threshold': 100, 'category': 'chores'},
     {'badge_key': 'on_a_roll', 'badge_name': 'On a Roll', 'icon': '🔥', 'description': '3-day chore streak!', 'threshold': 3, 'category': 'streak'},
     {'badge_key': 'streak_master', 'badge_name': 'Streak Master', 'icon': '⚡', 'description': '7-day chore streak!', 'threshold': 7, 'category': 'streak'},
     {'badge_key': 'century_club', 'badge_name': 'Century Club', 'icon': '💯', 'description': 'Earned 100 points!', 'threshold': 100, 'category': 'points'},

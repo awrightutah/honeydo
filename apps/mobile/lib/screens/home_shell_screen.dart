@@ -290,7 +290,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
                     ),
                   Flexible(
                     child: Text(
-                      _household?['name'] ?? 'Honeydo',
+                      _household?['name'] ?? 'Clanquility',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                       overflow: TextOverflow.ellipsis,
                     ),

@@ -89,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                       // App name
                       const Text(
-                        'Honeydo',
+                        'Clanquility',
                         style: TextStyle(
                           fontSize: 48,
                           fontWeight: FontWeight.w900,

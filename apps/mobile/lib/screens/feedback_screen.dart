@@ -150,7 +150,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Help us improve Honeydo! Submit feature requests or report bugs.',
+                              'Help us improve Clanquility! Submit feature requests or report bugs.',
                               style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                             ),
                             const SizedBox(height: 20),

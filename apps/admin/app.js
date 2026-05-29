@@ -1,4 +1,4 @@
-// Honeydo Admin Dashboard
+// Clanquility Admin Dashboard
 (function() {
   'use strict';
 

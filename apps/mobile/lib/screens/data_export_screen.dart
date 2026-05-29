@@ -213,11 +213,11 @@ class _DataExportScreenState extends State<DataExportScreen> {
 
   Future<void> _exportAsJson(Map<String, dynamic> data, String timestamp) async {
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/honeydo_export_$timestamp.json');
+    final file = File('${dir.path}/clanquility_export_$timestamp.json');
     await file.writeAsString(const JsonEncoder.withIndent('  ').convert(data));
     await Share.shareXFiles(
       [XFile(file.path)],
-      subject: 'Honeydo Household Data Export',
+      subject: 'Clanquility Household Data Export',
     );
   }
 
@@ -240,11 +240,11 @@ class _DataExportScreenState extends State<DataExportScreen> {
       buffer.writeln();
     }
 
-    final file = File('${dir.path}/honeydo_export_$timestamp.csv');
+    final file = File('${dir.path}/clanquility_export_$timestamp.csv');
     await file.writeAsString(buffer.toString());
     await Share.shareXFiles(
       [XFile(file.path)],
-      subject: 'Honeydo Household Data Export (CSV)',
+      subject: 'Clanquility Household Data Export (CSV)',
     );
   }
 }

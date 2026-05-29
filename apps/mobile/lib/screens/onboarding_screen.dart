@@ -23,7 +23,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   final _steps = const [
     _OnboardingStep(
       emoji: '🐝',
-      title: 'Welcome to Honeydo',
+      title: 'Welcome to Clanquility',
       body: 'The household hub that keeps your family organized, motivated, and connected. Manage chores, plan meals, and track shopping — all in one place.',
       gradient: [Color(0xFFFFD54F), Color(0xFFFFA726)],
     ),

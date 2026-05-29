@@ -97,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Honeydo',
+                    'Clanquility',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: colorScheme.onSurface,

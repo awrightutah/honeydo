@@ -240,7 +240,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Icon(Icons.search_rounded, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
-            'Search Honeydo',
+            'Search Clanquility',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: Colors.grey.shade400,
