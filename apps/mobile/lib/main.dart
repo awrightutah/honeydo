@@ -30,19 +30,19 @@ Future<void> main() async {
   await FeatureTourService.instance.init();
   await ActiveMemberService.instance.init();
 
-  runApp(const HoneydoApp());
+  runApp(const ClanquilityApp());
 }
 
-class HoneydoApp extends StatefulWidget {
-  const HoneydoApp({super.key});
+class ClanquilityApp extends StatefulWidget {
+  const ClanquilityApp({super.key});
 
   static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
   @override
-  State<HoneydoApp> createState() => _HoneydoAppState();
+  State<ClanquilityApp> createState() => _ClanquilityAppState();
 }
 
-class _HoneydoAppState extends State<HoneydoApp> {
+class _ClanquilityAppState extends State<ClanquilityApp> {
   @override
   void initState() {
     super.initState();
@@ -52,13 +52,13 @@ class _HoneydoAppState extends State<HoneydoApp> {
   Future<void> _loadThemePreference() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool('dark_mode') ?? false;
-    HoneydoApp.themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    ClanquilityApp.themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
-      valueListenable: HoneydoApp.themeNotifier,
+      valueListenable: ClanquilityApp.themeNotifier,
       builder: (context, currentMode, child) {
         return MaterialApp(
           title: 'Clanquility',

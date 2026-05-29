@@ -570,7 +570,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final sharedPrefs = await SharedPreferences.getInstance();
               await sharedPrefs.setBool('dark_mode', value);
               // Update the app theme
-              HoneydoApp.themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
+              ClanquilityApp.themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
             },
           ),
           ListTile(

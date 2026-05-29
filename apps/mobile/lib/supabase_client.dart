@@ -1,7 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Supabase client singleton for the Honeydo mobile app.
+/// Supabase client singleton for the Clanquility mobile app.
 ///
 /// Initialize this in main() before runApp() using:
 /// ```dart
@@ -12,8 +12,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// ```
 ///
 /// Access the client anywhere via `Supabase.instance.client`.
-class HoneydoSupabaseClient {
-  HoneydoSupabaseClient._();
+class ClanquilitySupabaseClient {
+  ClanquilitySupabaseClient._();
 
   /// Get the Supabase client instance.
   static SupabaseClient get instance => Supabase.instance.client;
