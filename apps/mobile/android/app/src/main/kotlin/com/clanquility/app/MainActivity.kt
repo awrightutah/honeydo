@@ -1,4 +1,4 @@
-package com.familytask.honeydo_mobile
+package com.clanquility.app
 
 import io.flutter.embedding.android.FlutterActivity
 
