@@ -26,6 +26,7 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
   List<Map<String, dynamic>> _mealPlans = [];
   List<Map<String, dynamic>> _householdRecipes = [];
   List<Map<String, dynamic>> _members = [];
+  List<Map<String, dynamic>> _tags = [];
   bool _isLoading = true;
 
   DateTime _weekStart = _startOfWeek(DateTime.now());
@@ -75,7 +76,7 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
       _household = membership['households'];
       final householdId = _household!['id'];
 
-      // Load recipes and members in parallel
+      // Load recipes, members, and tags in parallel
       final results = await Future.wait([
         Supabase.instance.client
             .from('household_recipes')
@@ -88,10 +89,16 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
             .eq('household_id', householdId)
             .eq('is_active', true)
             .order('display_name'),
+        Supabase.instance.client
+            .from('calendar_tags')
+            .select()
+            .eq('household_id', householdId)
+            .order('name'),
       ]);
 
       _householdRecipes = List<Map<String, dynamic>>.from(results[0]);
       _members = List<Map<String, dynamic>>.from(results[1]);
+      _tags = List<Map<String, dynamic>>.from(results[2]);
 
       await _loadMealPlans();
     } catch (_) {
@@ -146,6 +153,7 @@ class _MealPlannerScreenState extends State<MealPlannerScreen>
         preselectedMealType: mealType,
         recipes: _householdRecipes,
         members: _members,
+        tags: _tags,
       ),
     ).then((_) => _loadMealPlans());
   }
@@ -601,6 +609,7 @@ class _AddMealPlanSheet extends StatefulWidget {
     this.preselectedMealType,
     required this.recipes,
     required this.members,
+    required this.tags,
   });
 
   final String householdId;
@@ -613,6 +622,7 @@ class _AddMealPlanSheet extends StatefulWidget {
   final String? preselectedMealType;
   final List<Map<String, dynamic>> recipes;
   final List<Map<String, dynamic>> members;
+  final List<Map<String, dynamic>> tags;
 
   @override
   State<_AddMealPlanSheet> createState() => _AddMealPlanSheetState();
@@ -625,6 +635,7 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
   final _servingsController = TextEditingController();
   final _notesController = TextEditingController();
   String? _assignedCookId;
+  String? _selectedTagId;
   bool _isLoading = false;
   bool _addIngredientsToList = true;
 
@@ -666,6 +677,7 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
         'recipe_id': _selectedRecipeId,
         'custom_title': customTitle.isEmpty ? null : customTitle,
         'assigned_cook_member_id': _assignedCookId,
+        'tag_id': _selectedTagId,
         'servings': int.tryParse(_servingsController.text.trim()),
         'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         'created_by_member_id': widget.myMemberId,
@@ -859,6 +871,31 @@ class _AddMealPlanSheetState extends State<_AddMealPlanSheet> {
                 )),
               ],
               onChanged: (v) => setState(() => _assignedCookId = v),
+            ),
+            const SizedBox(height: 16),
+
+            // Tag
+            DropdownButtonFormField<String>(
+              initialValue: _selectedTagId,
+              decoration: const InputDecoration(
+                labelText: 'Tag',
+                prefixIcon: Icon(Icons.label_outline_rounded),
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('No tag')),
+                ...widget.tags.map((t) => DropdownMenuItem(
+                  value: t['id'],
+                  child: Row(
+                    children: [
+                      if (t['emoji'] != null) Text(t['emoji'], style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 6),
+                      Text(t['name'] ?? '', style: const TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                )),
+              ],
+              onChanged: (v) => setState(() => _selectedTagId = v),
             ),
             const SizedBox(height: 16),
 
