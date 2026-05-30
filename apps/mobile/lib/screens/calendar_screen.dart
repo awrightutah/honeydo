@@ -198,17 +198,38 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   List<Map<String, dynamic>> _mealsForDay(DateTime day) {
     final iso = _isoDate(day);
-    return _meals.where((m) => m['planned_for'] == iso).toList();
+    return _meals.where((m) {
+      if (m['planned_for'] != iso) return false;
+      if (_filterTagId != null && m['tag_id'] != _filterTagId) return false;
+      return true;
+    }).toList();
   }
 
   List<Map<String, dynamic>> _choresForDay(DateTime day) {
     return _chores.where((c) {
       final effective = _choreEffectiveDate(c);
       if (effective == null) return false;
-      return effective.year == day.year &&
-          effective.month == day.month &&
-          effective.day == day.day;
+      if (effective.year != day.year ||
+          effective.month != day.month ||
+          effective.day != day.day) {
+        return false;
+      }
+      if (_filterTagId != null && c['tag_id'] != _filterTagId) return false;
+      return true;
     }).toList();
+  }
+
+  // Maps a tag_id to its color, looking up in the fetched _tags list. Returns
+  // null when tag_id is null or the tag isn't found (e.g., RLS hid it from
+  // this user). Callers fall back to a type-default color.
+  Color? _tagColorById(String? tagId) {
+    if (tagId == null) return null;
+    for (final t in _tags) {
+      if (t['id'] == tagId) {
+        return _parseColor(t['color'] as String?);
+      }
+    }
+    return null;
   }
 
   void _showAddEventSheet() {
@@ -451,14 +472,24 @@ class _CalendarScreenState extends State<CalendarScreen>
                           );
                         }),
                         if (dayMeals.isNotEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 1),
-                            child: Icon(Icons.restaurant, size: 8, color: AppColors.coral),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Icon(
+                              Icons.restaurant,
+                              size: 8,
+                              color: _tagColorById(dayMeals.first['tag_id'] as String?) ??
+                                  AppColors.coral,
+                            ),
                           ),
                         if (dayChores.isNotEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 1),
-                            child: Icon(Icons.checklist, size: 8, color: AppColors.skyBlue),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Icon(
+                              Icons.checklist,
+                              size: 8,
+                              color: _tagColorById(dayChores.first['tag_id'] as String?) ??
+                                  AppColors.skyBlue,
+                            ),
                           ),
                       ],
                     ),
@@ -557,11 +588,13 @@ class _CalendarScreenState extends State<CalendarScreen>
           _MealRow(
             meal: meal,
             onTap: () => _openMeal(meal),
+            color: _tagColorById(meal['tag_id'] as String?) ?? AppColors.coral,
           ),
         for (final chore in sortedChores)
           _ChoreRow(
             chore: chore,
             onTap: () => _openChore(chore),
+            color: _tagColorById(chore['tag_id'] as String?) ?? AppColors.skyBlue,
           ),
       ],
     );
@@ -970,10 +1003,15 @@ class _AddEventSheetState extends State<_AddEventSheet> {
 }
 
 class _MealRow extends StatelessWidget {
-  const _MealRow({required this.meal, required this.onTap});
+  const _MealRow({
+    required this.meal,
+    required this.onTap,
+    this.color = AppColors.coral,
+  });
 
   final Map<String, dynamic> meal;
   final VoidCallback onTap;
+  final Color color;
 
   static const _mealTypeLabels = {
     'breakfast': 'Breakfast',
@@ -1003,8 +1041,8 @@ class _MealRow extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: AppColors.coral.withValues(alpha: .15),
-                child: Icon(Icons.restaurant, size: 18, color: AppColors.coral),
+                backgroundColor: color.withValues(alpha: .15),
+                child: Icon(Icons.restaurant, size: 18, color: color),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1042,10 +1080,15 @@ class _MealRow extends StatelessWidget {
 }
 
 class _ChoreRow extends StatelessWidget {
-  const _ChoreRow({required this.chore, required this.onTap});
+  const _ChoreRow({
+    required this.chore,
+    required this.onTap,
+    this.color = AppColors.skyBlue,
+  });
 
   final Map<String, dynamic> chore;
   final VoidCallback onTap;
+  final Color color;
 
   static const _statusLabels = {
     'assigned': 'Assigned',
@@ -1079,11 +1122,11 @@ class _ChoreRow extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: AppColors.skyBlue.withValues(alpha: .15),
+                backgroundColor: color.withValues(alpha: .15),
                 child: Icon(
                   isDone ? Icons.check_circle_outline : Icons.checklist,
                   size: 18,
-                  color: AppColors.skyBlue,
+                  color: color,
                 ),
               ),
               const SizedBox(width: 12),
