@@ -103,8 +103,6 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
 
       // Create default calendar tags for the household
       final defaultTags = [
-        {'name': 'Chores', 'color': '#F5A623', 'emoji': '🧹'},
-        {'name': 'Meals', 'color': '#7ED321', 'emoji': '🍽️'},
         {'name': 'Shopping', 'color': '#4A90D9', 'emoji': '🛒'},
         {'name': 'Family', 'color': '#FF6B6B', 'emoji': '❤️'},
         {'name': 'School', 'color': '#9B59B6', 'emoji': '📚'},
