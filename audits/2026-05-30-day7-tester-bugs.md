@@ -847,5 +847,102 @@ WHERE tablename = 'calendar_events';
 
 Query A confirms no chore-instance tables I missed (expected: `chores`, `chore_templates`, `chore_verification_photos`, `chore_history`, `chore_comments`). B confirms chores actually have `due_at` set in production (the design might be that chores only get `due_at` for specific cases, with template-based recurrence handled differently — worth verifying). C confirms RLS is just the one `household_scoped_chores` policy. D + E confirm calendar_events live state.
 
+## Bug 1 Phase 2 prep: tag system inventory (2026-05-30, after Phase 1 landed at commit 9bdf057)
+
+### Where calendar_events get tagged in UI
+
+- **File:line:** `apps/mobile/lib/screens/calendar_screen.dart:897-918`
+- **Where in UX:** inside `_AddEventSheet` (the modal bottom sheet that opens via the "+" button on the calendar header for the selected day)
+- **Picker shape:** `DropdownButtonFormField<String>` with `value: _selectedTagId`. Items: `"No tag"` sentinel (null) + one row per fetched tag showing `emoji + name`.
+- **Where tags come from:** `_tags` state list, populated by `_loadData()` in `calendar_screen.dart:84` via `.from('calendar_tags').select().eq('household_id', householdId).order('name')`.
+- **Where tag_id gets written:** `calendar_screen.dart:797` — `'tag_id': _selectedTagId` in the `INSERT into calendar_events`.
+
+### Is there a tag management UI?
+
+**No.** Searched: `TagSettings`, `tagManager`, `manage.*tag`, `TagsScreen`, `TagEditor`. Zero matches. Also no code that calls `.from('calendar_tags').update(...)` or `.delete(...)` — tags are insert-only, and only inserted at one location.
+
+### How do tags currently get created?
+
+`apps/mobile/lib/screens/household_setup_screen.dart:104-119` — during household creation, a hardcoded loop seeds 6 default tags per household:
+
+```dart
+final defaultTags = [
+  {'name': 'Chores',   'color': '#F5A623', 'emoji': '🧹'},  // honey gold
+  {'name': 'Meals',    'color': '#7ED321', 'emoji': '🍽️'},  // grass green
+  {'name': 'Shopping', 'color': '#4A90D9', 'emoji': '🛒'},  // sky blue
+  {'name': 'Family',   'color': '#FF6B6B', 'emoji': '❤️'},  // coral
+  {'name': 'School',   'color': '#9B59B6', 'emoji': '📚'},  // purple
+  {'name': 'Other',    'color': '#95A5A6', 'emoji': '📌'},  // grey
+];
+for (final tag in defaultTags) {
+  await Supabase.instance.client.from('calendar_tags').insert({
+    'household_id': householdId,
+    ...tag,
+  });
+}
+```
+
+After household creation, tags cannot be added, edited, or removed through the app. The only way to change them is via direct Supabase SQL.
+
+**Note: "Chores" and "Meals" tags are already seeded** but only apply to `calendar_events`. They were intended for events *about* chores/meals (e.g., "spring cleaning day", "Mother's Day dinner") — they don't connect to the actual `chores` or `meal_plans` rows that the calendar now shows post-Phase 1. This is a soft conceptual overlap that users may find confusing once Phase 2 lands.
+
+### `calendar_tags` schema
+
+From `supabase/migrations/0001_initial_schema.sql:188` (+ `0008_emoji_columns.sql` for the `emoji` column):
+
+```sql
+create table public.calendar_tags (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null references public.households(id) on delete cascade,
+  name text not null,
+  icon text,                                  -- legacy column, unused by current code
+  emoji text,                                 -- added in 0008, used everywhere now
+  color text not null default '#4A90D9',      -- hex string with #
+  created_by_member_id uuid references public.household_members(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+Two columns exist for icons — `icon` (original) and `emoji` (added later). All current code reads/writes `emoji`; `icon` is legacy and unused.
+
+### `calendar_tags` RLS
+
+```sql
+create policy household_scoped_calendar_tags on public.calendar_tags
+  for all using (public.is_household_member(household_id));
+```
+
+Any household member can SELECT/INSERT/UPDATE/DELETE tags. No admin restriction. **No protection against deleting a tag in active use** — `calendar_events.tag_id` has `on delete set null`, so deletion would orphan all tagged events to null (acceptable but worth noting).
+
+### Recommended Phase 2 approach: extend existing `calendar_tags` to meals and chores
+
+**Recommendation: shared tag namespace** (Option A below over the alternatives). Reasons:
+- Tags are already household-scoped, the right semantic boundary
+- Single set of tags for users to manage rather than three separate systems
+- Cleans up the conceptual overlap of the existing "Chores" / "Meals" seed tags — they'd actually mean something meaningful when applied to chores/meals
+- Existing UX patterns (DropdownButtonFormField picker, ChoiceChip filter row) extend directly
+
+**Alternatives considered and rejected:**
+- *Separate per-type tags* (`meal_tags`, `chore_tags`): triple the schema + UI surface; tag concepts (e.g., a "Healthy" tag) often span types
+- *Use existing enums* (`meal_type`, `chore_status`) as the tag concept: no customization possible; doesn't match Andrew's "tag/color customization" intent
+
+### Phase 2 scope breakdown (Option A)
+
+1. **Migration**: add `tag_id uuid references calendar_tags(id) on delete set null` columns to `meal_plans` and `chores`. ~10 lines SQL. **15 min.**
+2. **Tag management screen**: new file (e.g., `tag_settings_screen.dart`) with list of tags, add/edit/delete affordances, color picker, emoji picker. ~150-250 lines. **2-3 hours.**
+3. **Entry point for the tag management screen**: from settings screen or from the calendar's tag-filter row (long-press "All" or an explicit "Manage tags" button). ~10 lines. **15 min.**
+4. **Tag picker in meal_planner_screen create flow**: same `DropdownButtonFormField` pattern as `_AddEventSheet`. ~30 lines. **30 min.**
+5. **Tag picker in chore creation flow**: same pattern in `chore_dashboard_screen.dart:711` or wherever chore creation lives. ~30 lines. **30 min.**
+6. **Calendar render updates**:
+   - Day-cell icons (currently coral for meals, skyBlue for chores) → use per-item tag color when a tag is set, fallback to type-default. ~15 lines. **30 min.**
+   - `_MealRow` + `_ChoreRow` in calendar's inline panel: show tag chip if tagged. ~20 lines. **30 min.**
+7. **Tag filter row extension**: currently filters only events. Decide: extend to also filter meals/chores by the same tag, OR add per-type filter chips. Simpler: same filter applies across all three types. ~10 lines (calendar_screen.dart tag-filter handler). **15 min.**
+8. **Followup hygiene**: protect against tag deletion when in use (count references first, ask user to reassign or set to null). Probably defer to a polish pass — not blocking. **0 min for Phase 2.**
+
+**Total Phase 2 scope: ~4-5 hours of focused work.** Medium-large.
+
+**Optional micro-followup** (not Phase 2 blocker): rename the seeded "Chores" and "Meals" tags. Once tags apply to chores/meals directly, having a "Chores" tag on a chore is tautological. Consider renaming seeds to category names (e.g., "Cleaning", "Cooking", "Errands", "Self-care") or making the seed list a starting suggestion that users can clear. Defer this decision to product.
+
 ## Other findings
 None yet. More bugs will likely surface as additional testers are invited.
