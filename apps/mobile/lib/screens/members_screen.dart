@@ -82,12 +82,6 @@ class _MembersScreenState extends State<MembersScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await Supabase.instance.client.functions.invoke(
-        'generate-invite',
-        body: {'household_id': _household!['id']},
-      );
-
-      // Fallback: create invite directly
       final user = Supabase.instance.client.auth.currentUser!;
       final existingInvites = await Supabase.instance.client
           .from('household_invites')
