@@ -143,79 +143,28 @@ class _HouseholdSetupScreenState extends State<HouseholdSetupScreen> {
     });
 
     try {
-      final user = Supabase.instance.client.auth.currentUser!;
-
-      // Ensure profile exists
       await _ensureProfile();
 
-      // Look up the invite
-      final invite = await Supabase.instance.client
-          .from('household_invites')
-          .select()
-          .eq('code', code)
-          .maybeSingle();
-
-      if (invite == null) {
-        setState(() => _errorMessage = 'Invalid invite code. Please check and try again.');
-        return;
-      }
-
-      // Check if expired
-      if (invite['expires_at'] != null && DateTime.tryParse(invite['expires_at'])?.isBefore(DateTime.now()) == true) {
-        setState(() => _errorMessage = 'This invite code has expired.');
-        return;
-      }
-
-      // Check if revoked
-      if (invite['revoked_at'] != null) {
-        setState(() => _errorMessage = 'This invite code has been revoked.');
-        return;
-      }
-
-      // Check max uses
-      if (invite['use_count'] >= invite['max_uses']) {
-        setState(() => _errorMessage = 'This invite code has reached its usage limit.');
-        return;
-      }
-
-      final householdId = invite['household_id'];
-
-      // Check if already a member
-      final existing = await Supabase.instance.client
-          .from('household_members')
-          .select()
-          .eq('household_id', householdId)
-          .eq('auth_user_id', user.id)
-          .maybeSingle();
-
-      if (existing != null) {
-        setState(() => _errorMessage = 'You\'re already a member of this household.');
-        return;
-      }
-
-      // Add as member
-      await Supabase.instance.client.from('household_members').insert({
-        'household_id': householdId,
-        'auth_user_id': user.id,
-        'role': 'member',
-        'kind': 'adult_auth_user',
-        'display_name': user.userMetadata?['display_name'] ?? user.email?.split('@').first ?? 'Member',
-        'points_balance': 0,
-        'is_active': true,
-        'created_by': user.id,
-      });
-
-      // Increment invite use count
-      await Supabase.instance.client
-          .from('household_invites')
-          .update({'use_count': (invite['use_count'] ?? 0) + 1})
-          .eq('id', invite['id']);
+      await Supabase.instance.client.rpc<void>(
+        'redeem_invite_code',
+        params: {'p_code': code},
+      );
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeShellScreen()),
         );
       }
+    } on PostgrestException catch (e) {
+      final message = switch (e.code) {
+        'P0001' => 'Please sign in to join a household.',
+        'P0002' => 'Invalid invite code. Please check and try again.',
+        'P0003' => 'This invite code has been revoked.',
+        'P0004' => 'This invite code has expired.',
+        'P0005' => 'This invite code has reached its usage limit.',
+        _ => 'Could not join household. Please try again.',
+      };
+      setState(() => _errorMessage = message);
     } catch (e) {
       setState(() => _errorMessage = 'Could not join household. ${e.toString()}');
     } finally {
