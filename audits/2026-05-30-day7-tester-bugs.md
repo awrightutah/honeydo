@@ -944,5 +944,112 @@ Any household member can SELECT/INSERT/UPDATE/DELETE tags. No admin restriction.
 
 **Optional micro-followup** (not Phase 2 blocker): rename the seeded "Chores" and "Meals" tags. Once tags apply to chores/meals directly, having a "Chores" tag on a chore is tautological. Consider renaming seeds to category names (e.g., "Cleaning", "Cooking", "Errands", "Self-care") or making the seed list a starting suggestion that users can clear. Defer this decision to product.
 
-## Other findings
-None yet. More bugs will likely surface as additional testers are invited.
+## Bug 1 Phase 2 build: tag system extension to chores + meals
+
+This section documents the build work completed in commits 1d40efe (schema migrations banked), 8e081c8 (seed cleanup), 0eb69aa (tag management screen), f7902ce (entry points), 1e1bfb9 (meal picker), and db0dc82 (chore picker). The remaining work (calendar render + filter extension) is tracked in subsequent commits, not this doc.
+
+### Production schema changes (applied via Supabase SQL Editor)
+
+Migration 1: `ALTER meal_plans + chores ADD COLUMN tag_id uuid REFERENCES calendar_tags(id) ON DELETE SET NULL`. Plus partial indexes (`WHERE tag_id IS NOT NULL`) on each.
+
+Migration 2: DROP `household_scoped_calendar_tags` policy; CREATE 4 scoped policies — `calendar_tags_member_select` (any household member), `calendar_tags_admin_insert/update/delete` (admins only via `is_household_admin`). Kids can pick tags; only admins can manage them.
+
+Both migrations banked as repo files in commit 1d40efe (`supabase/migrations/0022_calendar_tags_on_meals_and_chores.sql` + `0023_calendar_tags_rls_admin_only_mutations.sql`). Files use `IF NOT EXISTS` / `DROP POLICY IF EXISTS` for idempotency.
+
+### Seed list cleanup (commit 8e081c8)
+
+`household_setup_screen.dart` seed loop reduced from 6 tags to 4: removed Chores 🧹 and Meals 🍽️ (which became tautological after chores and meals could be tagged directly). Future-only change; existing households keep their seeded tags. Remaining seeded: Shopping 🛒, Family ❤️, School 📚, Other 📌.
+
+### Tag management screen (commit 0eb69aa)
+
+New screen at `apps/mobile/lib/screens/tag_management_screen.dart` (588 lines). Admin-only via UI gating (entry points hide it from kids) and RLS enforcement (server-side rejection).
+
+Design decisions:
+- 12-color preset palette (red/orange/yellow/green/teal/cyan/blue/purple/pink/brown/gray/slate as specific hex values). No custom hex input. Matches the Notion/Google Calendar/Apple Reminders convention of constraining the palette for visual coherence.
+- Emoji input as TextField (`maxLength: 4` for compound emojis with skin-tone modifiers + ZWJ). Live-preview circle (72px) updates as user types. **NOT** a "button that opens emoji keyboard" — Flutter doesn't expose API to force the OS emoji keyboard; a button would open the regular keyboard requiring globe-key navigation, which is UX theater. The TextField approach is honest about what the platform allows.
+- Color stored as hex string throughout (avoids `Color.value` deprecation).
+- Single file (588 lines) matches existing `_AddEventSheet` pattern.
+- Validation: name 1-20 chars trimmed, case-insensitive uniqueness within household (client-side; no DB-level unique constraint).
+- Delete confirmation: parallel `CountOption.exact` queries on `calendar_events` + `meal_plans` + `chores` via `Future.wait` to surface usage count before confirming. Specific message ("Deleting 'X' will remove the tag from N events, M meals, K chores") when in use; simpler message when unused. FK `ON DELETE SET NULL` means items become untagged, not deleted.
+- `_isRlsError` helper detects code `'42501'` + message substrings (`'permission'`, `'row-level'`, `'policy'`) for graceful non-admin handling.
+- Sort order: most recent first (`created_at DESC`), diverging from event picker's name-alphabetical order.
+
+### Entry points (commit f7902ce)
+
+Two admin-only entry points:
+- Settings screen: `ListTile` after Necessity Categories, before Notifications. `Icons.label_outline` + "Manage Tags" + "Customize tags for events, meals, and chores" subtitle.
+- Calendar screen: `ActionChip` "Manage" with `Icons.tune` at the trailing end of the filter pill row. Used `ActionChip` rather than `IconButton` because it matches the visual rhythm of the `ChoiceChip` filter pills (same height, just `onPressed` semantics signaling action vs. filter state).
+
+Added `Permissions.canManageTags(m) => isAdmin(m)` helper in `apps/mobile/lib/utils/permissions.dart` following the existing `canManageAnnouncements`/`canManageRewards` pattern.
+
+Filter row visibility condition broadened from `_tags.isNotEmpty` to `_tags.isNotEmpty || Permissions.canManageTags(_myMembership)` so admins can always reach tag management from the calendar even after deleting all tags.
+
+### Tag pickers (commits 1e1bfb9 + db0dc82)
+
+Meal picker (1e1bfb9):
+- Inserted in `_AddMealPlanSheet` form after meal_type, before Servings.
+- Tags fetched in parent screen's existing `Future.wait` alongside recipes + members.
+- Passed to sheet as constructor arg.
+
+Chore picker (db0dc82):
+- Inserted in `_AddChoreSheet` form after assign-to, before difficulty+points.
+- Tags fetched in sheet's own `_loadOptions()` (the sheet was already self-fetching members + templates).
+- Internal sheet state.
+
+Both pickers use the same widget shape: `DropdownButtonFormField<String>` with `initialValue:` (not `value:` — modern Flutter 3.33+ API), null sentinel as `DropdownMenuItem(value: null, child: Text('No tag'))`, and emoji + name displayed inline.
+
+Chore creation scope: only the main flow (`chore_dashboard_screen._createChore`) was tagged. Three other chore INSERT sites investigated and intentionally skipped:
+- `chore_templates_screen.dart:141` (template quick-assign): conflicts with one-tap UX intent; templates have no `tag_id` column.
+- `chore_detail_screen.dart:1221` (recurrence rollover): `Map.from(chore)` clones `tag_id` automatically.
+- `approvals_screen.dart:425` (recurrence rollover): same `Map.from`-clone pattern.
+
+## Followups logged (not blocking Phase 2; for future sessions)
+
+### DropdownButtonFormField `value:` → `initialValue:` migration
+
+Flutter 3.33+ deprecated `value:` in favor of `initialValue:` on `DropdownButtonFormField`. Two pre-existing pickers in `meal_planner_screen.dart` (~lines 828 recipe, ~860 assigned cook) still use the deprecated API. Phase 2 tag pickers use the modern API correctly. Small mechanical cleanup; no behavior change.
+
+### `_parseTagColor` utility duplication
+
+Same 6-line hex-to-Color parsing helper exists in 3+ places: `calendar_screen.dart` (two private copies), `tag_management_screen.dart` (one private copy). Worth extracting to `apps/mobile/lib/shared/utils/tag_color.dart` eventually. Not blocking; small refactor.
+
+### DB-level uniqueness for calendar_tags names
+
+Client-side case-insensitive uniqueness check exists in the tag form sheet, but it's not atomic — race condition window allows two admins to create same-named tags simultaneously. A DB-level `UNIQUE (household_id, lower(name))` constraint would close this. Multi-admin households are rare; not blocking for v1.
+
+### Template-tag inheritance question
+
+`chore_templates` currently has no `tag_id` column. Should a template carry a default tag that instances inherit? Product question for a future session; not blocking.
+
+### Calendar empty-state-with-active-filter copy
+
+If a user filters to "School" but nothing on a given day is School-tagged, the inline panel shows "Nothing planned for this day." which is technically wrong (something might be planned, just filtered out). The active filter is visible at the top of the screen via the highlighted pill, so users have context. Minor polish for later if filter use becomes common.
+
+### MEMORY files incident (process note)
+
+During Phase 2 build work, Claude Code created internal memory files at `~/.claude/projects/-Users-andrewwright-honeydo/memory/` unprompted — specifically a `flutter-dropdown-initial-value-migration.md` note and a `MEMORY.md` index. These are Claude-Code-internal, outside the repo, not git-tracked.
+
+The chore picker (db0dc82) correctly applied `initialValue:` per the memory note, demonstrating the memory system working as designed. Files were left in place after Andrew chose Option A (keep) once it became clear they're agent-internal infrastructure rather than project artifacts.
+
+Process pattern to note for future sessions: Claude Code's memory system is opt-in by behavior, not by question. Future sessions may add memory files without prompting; this is by design.
+
+## Phase 2 status at end of bank
+
+Complete:
+- ✓ Schema migrations (production + repo)
+- ✓ Seed list cleanup
+- ✓ Tag management screen (admin CRUD)
+- ✓ Entry points (settings + calendar filter row)
+- ✓ Tag picker in meal creation
+- ✓ Tag picker in chore creation
+
+Remaining (tracked in subsequent commits, NOT this doc — see git log from here forward):
+- Calendar render reads per-item `tag_id` → `tag.color`/`tag.emoji`
+- Filter pill behavior extends to filter meals + chores by tag
+- TestFlight 1.0.0+2 build
+
+## Documentation pattern transition
+
+This is the final bank of the audit doc body. From this point forward, commit messages are the canonical documentation for the remaining Bug 1 work (calendar render + filter extension + TestFlight build) and subsequent work on other bugs. The audit doc body is closed and represents the complete investigation + decision record through Phase 2 of Bug 1.
+
+The reasoning: maintaining a parallel doc + commit messages creates drift (this incident is an example — the doc body lagged the commits by an entire Phase). Commit messages scale better for ongoing work and are searchable via `git log`. The audit doc was valuable during investigation phase when there were many open questions; once we transition to mechanical build work, commits do the documentation.
