@@ -577,5 +577,275 @@ Future<void> _generateInviteCode() async {
 
 **~5 minutes.** Single-file 6-line deletion, branch + commit + merge in the usual flow. Verified via `flutter analyze` (expect 232 baseline unchanged) and ideally manual smoke test (tap the button, see a code appear in the UI, confirm row in `household_invites`).
 
+## Bug 1: Calendar doesn't display planned meals — investigation findings (2026-05-30)
+
+### Meal write path
+
+- **File:** `apps/mobile/lib/screens/meal_planner_screen.dart:662`
+- **Table:** `public.meal_plans`
+- **Insert columns:**
+  ```dart
+  await Supabase.instance.client.from('meal_plans').insert({
+    'household_id': widget.householdId,
+    'planned_for': widget.day.toIso8601String().substring(0, 10),  // YYYY-MM-DD
+    'meal_type': _mealType,
+    'recipe_id': _selectedRecipeId,            // FK to household_recipes
+    'custom_title': customTitle.isEmpty ? null : customTitle,
+    'assigned_cook_member_id': _assignedCookId,
+    'servings': int.tryParse(_servingsController.text.trim()),
+    'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+    'created_by_member_id': widget.myMemberId,
+  }).select().single();
+  ```
+- **Second write path:** `apps/mobile/lib/screens/recipe_detail_screen.dart:448` (recipe → meal plan flow). Same table.
+
+### `meal_plans` schema (from `supabase/migrations/0001_initial_schema.sql:282`)
+
+```sql
+create table public.meal_plans (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null references public.households(id) on delete cascade,
+  planned_for date not null,
+  meal_type meal_type not null,
+  recipe_id uuid references public.household_recipes(id) on delete set null,
+  -- ... (rest of columns elided)
+);
+```
+
+Key column for calendar matching: **`planned_for` (date, not timestamp)**. Indexed by `idx_meal_plans_household_date on (household_id, planned_for)` (line 427) — fast for the calendar's monthly fetch.
+
+### `meal_plans` RLS (from same migration, line 531)
+
+```sql
+create policy household_scoped_meal_plans on public.meal_plans
+  for all using (public.is_household_member(household_id));
+```
+
+Standard household-scoped. Any household member can read/write. **Not a bug source.**
+
+### Calendar fetch path
+
+- **File:** `apps/mobile/lib/screens/calendar_screen.dart` (790 lines)
+- **Tables queried:** `calendar_tags`, `household_members`, `calendar_events`, `calendar_event_members`
+- **`_loadEvents()` at line 102-129** fetches only `calendar_events`:
+  ```dart
+  var query = Supabase.instance.client
+      .from('calendar_events')
+      .select('*, tag:calendar_tags(name, color, emoji), creator:household_members!created_by_member_id(display_name)')
+      .eq('household_id', _household!['id'])
+      .gte('starts_at', monthStart.toIso8601String())
+      .lte('starts_at', monthEnd.toIso8601String());
+  ```
+- **Day-cell selector** `_eventsForDay(day)` at line 131-137 filters `_events` by matching `starts_at` to the day. Calendar render uses this list.
+
+### Does the calendar query the meal table?
+
+**No.** `grep -nE "meal|plan" calendar_screen.dart` returns zero hits across all 790 lines. No fetch, no state, no render path for meals. The calendar was simply never wired to display them.
+
+### Date filter comparison
+
+Events use timestamp filter (`starts_at gte/lte` ISO timestamp). Meals would need date-string filter (`planned_for gte/lte` `'YYYY-MM-DD'`) because `planned_for` is a `date`, not `timestamptz`. The Day-of-month matching in Dart would compare the date string directly instead of parsing a DateTime.
+
+### Column-name match check
+
+N/A — no query is being made, so there's no mismatch to check. Column-name issues would only matter once the fetch is added.
+
+### Diagnosis
+
+**A. Calendar doesn't query the meal table at all.** No RLS issue (B/D ruled out). No render bug (C ruled out — there's nothing to render because there's no fetch). No schema drift (E ruled out — schema is clean and meal planner writes data fine, as confirmed by data_export's working read on the same table).
+
+### SQL for Andrew to confirm in Supabase SQL Editor
+
+```sql
+-- 1. Verify meal_plans rows exist for the household (substitute household_id if needed)
+SELECT id, planned_for, meal_type, recipe_id, custom_title, created_by_member_id, created_at
+FROM public.meal_plans
+WHERE household_id = 'a36cf652-d58a-4a62-a09e-f01d74a57ef9'
+ORDER BY planned_for DESC, created_at DESC
+LIMIT 20;
+
+-- 2. RLS policies on meal_plans (confirm only household_scoped_meal_plans is enforced)
+SELECT policyname, cmd, qual, with_check
+FROM pg_policies
+WHERE tablename = 'meal_plans';
+```
+
+Expected: query 1 returns the meals that the meal planner UI has saved. Query 2 returns one row: `household_scoped_meal_plans` with `qual = public.is_household_member(household_id)`.
+
+### Recommended fix scope
+
+**Medium — single file, ~50-80 lines added.** Touches only `calendar_screen.dart`.
+
+Required changes:
+1. **Parallel fetch in `_loadEvents()` (or rename to `_loadCalendarData()`):** add a second `meal_plans` query alongside the `calendar_events` query, filtered by `household_id` + `planned_for` in the focused month's date range. Optionally `.select('*, recipe:household_recipes(title)')` to get the recipe name when `recipe_id` is set.
+2. **New state list `_mealPlans`** alongside `_events`.
+3. **New helper `_mealPlansForDay(day)`** mirroring `_eventsForDay` but matching on `planned_for` (date string) instead of `starts_at` (timestamp).
+4. **Day-cell render update** — add a section per day for meals (probably a fork-and-knife icon + meal_type + recipe.title or custom_title). Visually distinct from events.
+
+UX decisions to make before/during the fix:
+- Whether the existing tag filter should hide meals (probably no — meals don't have tags)
+- Whether tapping a meal navigates somewhere (meal_planner_screen for edit? recipe_detail for the recipe? read-only display?)
+- Whether to show all meal types or filter by meal_type in some way
+
+### Estimated fix time
+
+**1-2 hours** of focused work, plus 30 minutes of manual smoke testing on iOS. Net change ~50-80 lines in one file. The data path is straightforward; UX polish (visual treatment, tap behavior) is the variable.
+
+## Bug 1: Calendar scope investigation findings — full feature spec (2026-05-30, after Andrew's product clarification)
+
+Andrew's stated product intent: *"The calendar should show everything from meals and users entered activities. Also chores as well. When the user clicks on a day it is supposed to open a dialog that shows the days outlook."*
+
+### Current state recap
+
+- **Calendar currently fetches:** `calendar_tags`, `household_members`, `calendar_events` (events only), plus `calendar_event_members` on insert.
+- **Calendar currently does NOT fetch:** `meal_plans`, `chores` (or `chore_history`), `meal_requests`.
+- **Day cell rendering** (`calendar_screen.dart:314-360`):
+  - Shows day number with selected/today highlighting
+  - Up to 3 small colored dots at the bottom of the cell, each colored by event tag (`tag.color` or `color_override`). Only events contribute dots; no meals/chores indicator.
+- **Day-cell tap behavior** (line 322): `onTap: () => setState(() => _selectedDay = day)` — just selects the day; **does NOT open any dialog.**
+- **Inline panel below the grid** (`calendar_screen.dart:283 + _buildDayEvents() at line 375`):
+  - When a day is selected: renders a `ListView.builder` of `_EventCard` widgets, one per event
+  - Empty state: "No events" with 📋 emoji
+  - **Inline panel, not a dialog** — Andrew's spec changes this to a modal.
+- **Day-detail dialog exists in code:** **No.** `grep -rln "DayDetail|DayOutlook|day_detail|dayOutlook|showDayDetails|_showDay|_openDay"` returns zero hits. No stub, no widget, no scaffolding. **This will be built from scratch.**
+
+### Tables to incorporate
+
+#### 1. `meal_plans` (already covered in the prior Bug 1 findings section above)
+
+- **Date column:** `planned_for` (date, NOT NULL). YYYY-MM-DD string after Supabase serialization.
+- **Key display fields:** `meal_type` (enum: breakfast/lunch/dinner/snack), `recipe_id` (FK to `household_recipes` — join for title) OR `custom_title`, `assigned_cook_member_id` (join to `household_members.display_name`).
+- **RLS:** `household_scoped_meal_plans for all using is_household_member(household_id)` — clean, any member reads.
+- **Existing fetch pattern to follow:** `data_export_screen.dart:154` (`.from('meal_plans').select('*').eq('household_id', ...)`). For the calendar add `.gte('planned_for', monthStartDate).lte('planned_for', monthEndDate)`.
+- **Visual treatment hint:** Fork-and-knife icon 🍴, color family neutral/warm (consider `AppColors.honeyGold` variant for consistency with rewards), grouped under "Meals" header in the day-detail dialog.
+
+#### 2. `chores`
+
+- **Date columns:** Two — `due_at` (timestamptz, nullable) is primary; `chore_of_day_date` (date, nullable) is secondary for the "chore of the day" feature. For the calendar, use `due_at` (most chores will have it; recurrence-rule chores generate per-occurrence rows with `due_at` set).
+- **Schema highlights (`0001_initial_schema.sql:88`):**
+  - `id`, `household_id`, `title`, `description`
+  - `assigned_to_member_id` (FK to `household_members`)
+  - `created_by_member_id`
+  - `point_value`, `bonus_points`, `difficulty` (easy/medium/hard enum)
+  - `due_at` (timestamptz), `chore_of_day_date` (date), `recurrence_rule`
+  - `status` (assigned / in_progress / completed / verified / rejected — enum)
+  - `requires_photo`, `started_at`, `completed_at`, `verified_at`, `verified_by_member_id`, `rejected_reason`, `auto_verify_at`
+- **Key display fields:** `title`, `assignee.display_name` (joined), `point_value`, `status`, `due_at` for time-of-day if applicable.
+- **RLS:** `household_scoped_chores for all using is_household_member(household_id)` (line 521) — clean.
+- **Existing fetch pattern to follow:** `chore_dashboard_screen.dart:90` shows `.from('chores').select().eq('household_id', ...).eq('assigned_to_member_id', myMemberId).inFilter('status', ['assigned', 'in_progress', 'rejected'])`. **The calendar's variant should NOT filter by assignee** (show all household chores) and **probably should NOT filter out completed status** initially (so the calendar reflects accurate history). Decision deferred to Andrew (see Open Questions).
+- **Visual treatment hint:** Broom icon 🧹 or checkbox icon ✅, color family green for assigned / amber for in_progress / grey for completed. Grouped under "Chores" header in the day-detail dialog.
+
+#### 3. `calendar_events` (already fetched today)
+
+- **Date columns:** `starts_at` (timestamptz, NOT NULL), `ends_at` (timestamptz, nullable), `all_day` boolean (line 199-214).
+- **Key display fields:** `title`, `description`, `tag` (joined for color/emoji/name), `creator.display_name`, `all_day`, `starts_at`/`ends_at` for time range, `reminder_minutes_before`.
+- **RLS:** `household_scoped_calendar_events for all using is_household_member(household_id)` (line 529) — already working.
+- **Existing fetch pattern in calendar:** `calendar_screen.dart:109-114` — already correct. Reuse as-is in Phase 3.
+- **Visual treatment:** Existing `_EventCard` pattern. Tag-colored chip, group under "Activities" header.
+
+#### 4. `meal_requests` (optional, flagged for Andrew)
+
+- **Date column:** `requested_for_date` (date, nullable) — `0016_kid_perms_schema.sql:161`
+- **Purpose:** Kid-initiated meal requests pending admin approval. When approved, become `meal_plans`. While pending, they have no entry on the calendar yet.
+- **Should they appear on the calendar?** Andrew didn't mention them. Possible UX: pending requests shown as ghost/pending-styled entries on the requested date, with a "tap to approve" action for admins. Defer decision (see Open Questions).
+- **Other than this and the three above, no other time-bound entities exist in the schema** (verified by scanning all migrations for date/timestamp columns relevant to a family-calendar surface).
+
+### Day-detail dialog
+
+- **Existing code:** **none.** No stub, no widget. Net new build.
+- **Proposed shape** (one modal showModalBottomSheet or AlertDialog per day-cell tap):
+  - **Header:** day-of-week + date (e.g., "Friday, May 30")
+  - **Section: Meals** — list of meals planned for this day, grouped by `meal_type` (breakfast → lunch → dinner → snack). Each item: meal_type label, recipe title (or `custom_title`), assigned cook. Tap a meal → ??? (see Open Questions).
+  - **Section: Chores** — list of chores due this day. Each item: title, assignee avatar/name, point value, status indicator. Tap a chore → ??? (see Open Questions).
+  - **Section: Activities** — list of calendar_events for this day. Each item: existing `_EventCard` shape (title, tag, time range, description). Tap an event → existing edit/delete flow.
+  - **Empty state per section:** small placeholder text ("No meals planned" / "No chores due" / "No activities").
+  - **Empty overall:** if all three are empty, single placeholder: "Nothing scheduled for this day. Tap + to add an event, plan a meal, or assign a chore."
+  - **Add buttons in the dialog header:** + Activity (existing flow), + Meal (navigate to meal_planner for this day), + Chore (navigate to chore_dashboard or chore-creation flow for this day). Each pre-fills the date.
+
+### Open questions for Andrew (consolidated)
+
+1. **Day-cell visual treatment.** Currently shows up to 3 colored dots (events only). Should this change to:
+   - One dot per source type (e.g., yellow=meals, blue=events, green=chores)? Aggregate count badge ("3" in the corner)? Both?
+   - Or leave dots as event-only and rely on the dialog for the full picture?
+2. **Tap behavior on items inside the day-detail dialog:**
+   - **Meal tap:** navigate to `meal_planner_screen` for edit? Or to the recipe detail screen? Or read-only display?
+   - **Chore tap:** navigate to `chore_detail_screen`? Or quick-mark-complete inline? Or just read-only?
+   - **Event tap:** keep existing _EventCard delete-on-swipe + presumably some edit flow (the existing inline panel handles this — confirm we preserve in the dialog)?
+3. **Status filter for chores.** Should the calendar show:
+   - Only `assigned` / `in_progress` (active chores)
+   - All statuses including `completed` / `verified` (full historical accuracy)
+   - Or default to active + opt-in toggle for completed
+4. **All-day events.** They have `starts_at` and possibly `ends_at` but `all_day = true`. Show time in the day-detail dialog? Show as "All day" badge? (Currently the inline `_EventCard` already handles this — confirm same behavior in dialog.)
+5. **`meal_requests`** (kid-initiated, pending admin approval). Should pending requests appear on the calendar? If yes:
+   - Visually distinct from approved meal_plans (ghost / dashed border / amber color)
+   - Admin-only? Or visible to kids too?
+   - Tap to approve from the dialog?
+6. **Spanning events.** `calendar_events.ends_at` may extend across multiple days. Currently `_eventsForDay` only matches `starts_at` to the day — multi-day events appear only on the start date. Same shape for the dialog, or expand to show on every day in the range?
+7. **Past completed chores.** A chore with `due_at` two weeks ago that was completed: should it appear on the calendar's view of that historical day, or be filtered out as "not interesting anymore"?
+
+### Fix plan (three phases)
+
+#### Phase 1 — add `meal_plans` fetch + render (original Bug 1 scope)
+- Parallel fetch in `_loadEvents()` (rename to `_loadCalendarData()`)
+- New state `_mealPlans`, new helper `_mealPlansForDay(day)`
+- Render meals in the existing inline panel below the grid (keep current UX for now — dialog comes in Phase 3)
+- Day-cell dots updated to optionally include meal-color
+- **Scope:** medium, ~50-80 lines added to `calendar_screen.dart`. **Time: 1-2 hours + 30 min smoke test.**
+
+#### Phase 2 — add `chores` fetch + render
+- Add a third parallel fetch in `_loadCalendarData()` for `chores` filtered by `due_at` in the focused month, joined with `assignee:household_members(display_name)`
+- New state `_chores`, new helper `_choresForDay(day)`
+- Add chore display section in the same inline panel
+- **Scope:** medium, ~60-90 lines. **Time: 1-2 hours + 30 min smoke test.**
+
+#### Phase 3 — day-detail dialog
+- Build a new `_DayDetailDialog` widget (or `showModalBottomSheet`-based sheet)
+- Move the existing inline-panel content into the dialog
+- Three sections: Meals / Chores / Activities, each with its own _MealCard, _ChoreCard, existing _EventCard
+- Update day-cell `onTap` to call `_showDayDetail(day)` (which still sets `_selectedDay` + shows the dialog)
+- Add the three contextual "+" buttons in the dialog header for quick add (each routes to its respective creation flow with the date pre-filled)
+- **Scope:** larger — ~150-250 lines (new widget + sections + integration). **Time: 3-4 hours + 1 hour smoke test.**
+
+**Phase total:** 5-9 hours focused work + ~2 hours testing. Realistic span: **1.5-2 working days.**
+
+**Phase ordering rationale:** Phase 1 alone closes the Bug 1 ticket as filed. Phase 2 expands to chores per Andrew's clarified intent. Phase 3 introduces the dialog UX shift. Each phase ships independently — you can stop after Phase 1 if priorities change, or ship Phases 1+2 with the existing inline panel before committing to the dialog redesign.
+
+### SQL queries for Andrew to run in Supabase SQL Editor
+
+```sql
+-- A. List of chore-related tables
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public' AND table_name LIKE '%chore%';
+
+-- B. Sample chore data for the household
+SELECT id, title, assigned_to_member_id, due_at, chore_of_day_date,
+       status, point_value, recurrence_rule, created_at
+FROM public.chores
+WHERE household_id = 'a36cf652-d58a-4a62-a09e-f01d74a57ef9'
+ORDER BY due_at DESC NULLS LAST
+LIMIT 10;
+
+-- C. RLS policies on chore tables
+SELECT tablename, policyname, cmd, qual, with_check
+FROM pg_policies
+WHERE tablename LIKE '%chore%';
+
+-- D. Sample calendar_events for the household
+SELECT id, title, starts_at, ends_at, all_day, tag_id, color_override,
+       recurrence_rule, created_by_member_id
+FROM public.calendar_events
+WHERE household_id = 'a36cf652-d58a-4a62-a09e-f01d74a57ef9'
+ORDER BY starts_at DESC
+LIMIT 10;
+
+-- E. RLS policies on calendar_events
+SELECT policyname, cmd, qual, with_check
+FROM pg_policies
+WHERE tablename = 'calendar_events';
+```
+
+Query A confirms no chore-instance tables I missed (expected: `chores`, `chore_templates`, `chore_verification_photos`, `chore_history`, `chore_comments`). B confirms chores actually have `due_at` set in production (the design might be that chores only get `due_at` for specific cases, with template-based recurrence handled differently — worth verifying). C confirms RLS is just the one `household_scoped_chores` policy. D + E confirm calendar_events live state.
+
 ## Other findings
 None yet. More bugs will likely surface as additional testers are invited.
