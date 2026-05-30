@@ -661,6 +661,7 @@ class _AddChoreSheet extends StatefulWidget {
 class _AddChoreSheetState extends State<_AddChoreSheet> {
   final _titleController = TextEditingController();
   String? _selectedAssigneeId;
+  String? _selectedTagId;
   String _selectedDifficulty = 'easy';
   String _selectedRecurrence = 'once';
   int _pointValue = 5;
@@ -669,6 +670,7 @@ class _AddChoreSheetState extends State<_AddChoreSheet> {
 
   List<Map<String, dynamic>> _templates = [];
   List<Map<String, dynamic>> _members = [];
+  List<Map<String, dynamic>> _tags = [];
 
   @override
   void initState() {
@@ -690,9 +692,16 @@ class _AddChoreSheetState extends State<_AddChoreSheet> {
           .select()
           .eq('household_id', widget.householdId);
 
+      final tags = await Supabase.instance.client
+          .from('calendar_tags')
+          .select()
+          .eq('household_id', widget.householdId)
+          .order('name');
+
       setState(() {
         _templates = List<Map<String, dynamic>>.from(templates);
         _members = List<Map<String, dynamic>>.from(members);
+        _tags = List<Map<String, dynamic>>.from(tags);
       });
     } catch (_) {}
   }
@@ -718,6 +727,7 @@ class _AddChoreSheetState extends State<_AddChoreSheet> {
         'due_at': _dueDate?.toIso8601String(),
         'status': 'assigned',
         'recurrence_rule': _selectedRecurrence == 'once' ? null : _selectedRecurrence,
+        'tag_id': _selectedTagId,
       });
 
       if (mounted) Navigator.pop(context);
@@ -807,6 +817,31 @@ class _AddChoreSheetState extends State<_AddChoreSheet> {
                 )),
               ],
               onChanged: (v) => setState(() => _selectedAssigneeId = v),
+            ),
+            const SizedBox(height: 16),
+
+            // Tag
+            DropdownButtonFormField<String>(
+              initialValue: _selectedTagId,
+              decoration: const InputDecoration(
+                labelText: 'Tag',
+                prefixIcon: Icon(Icons.label_outline_rounded),
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('No tag')),
+                ..._tags.map((t) => DropdownMenuItem(
+                  value: t['id'],
+                  child: Row(
+                    children: [
+                      if (t['emoji'] != null) Text(t['emoji'], style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 6),
+                      Text(t['name'] ?? '', style: const TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                )),
+              ],
+              onChanged: (v) => setState(() => _selectedTagId = v),
             ),
             const SizedBox(height: 16),
 
