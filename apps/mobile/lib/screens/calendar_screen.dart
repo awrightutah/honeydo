@@ -4,6 +4,8 @@ import '../theme/app_theme.dart';
 import '../services/active_member_service.dart';
 import '../services/realtime_service.dart';
 import '../utils/membership.dart';
+import 'recipe_detail_screen.dart';
+import 'chore_detail_screen.dart';
 
 /// Full calendar screen with month view, custom tags/colors,
 /// event creation, tag filtering, and shared reminders.
@@ -22,6 +24,8 @@ class _CalendarScreenState extends State<CalendarScreen>
   Map<String, dynamic>? _household;
   Map<String, dynamic>? _myMembership;
   List<Map<String, dynamic>> _events = [];
+  List<Map<String, dynamic>> _meals = [];
+  List<Map<String, dynamic>> _chores = [];
   List<Map<String, dynamic>> _tags = [];
   List<Map<String, dynamic>> _members = [];
   bool _isLoading = true;
@@ -92,35 +96,66 @@ class _CalendarScreenState extends State<CalendarScreen>
       _tags = List<Map<String, dynamic>>.from(results[0]);
       _members = List<Map<String, dynamic>>.from(results[1]);
 
-      await _loadEvents();
+      await _loadCalendarData();
     } catch (e) {
       debugPrint('calendar load failed: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _loadEvents() async {
+  Future<void> _loadCalendarData() async {
     if (_household == null) return;
 
     try {
       final monthStart = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
       final monthEnd = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
+      final monthStartDateStr = _isoDate(monthStart);
+      final monthEndDateStr = _isoDate(monthEnd);
+      final householdId = _household!['id'];
 
-      var query = Supabase.instance.client
+      var eventsQuery = Supabase.instance.client
           .from('calendar_events')
           .select('*, tag:calendar_tags(name, color, emoji), creator:household_members!created_by_member_id(display_name)')
-          .eq('household_id', _household!['id'])
+          .eq('household_id', householdId)
           .gte('starts_at', monthStart.toIso8601String())
           .lte('starts_at', monthEnd.toIso8601String());
 
       if (_filterTagId != null) {
-        query = query.eq('tag_id', _filterTagId!);
+        eventsQuery = eventsQuery.eq('tag_id', _filterTagId!);
       }
 
-      final events = await query.order('starts_at');
+      // Chore filtering by date is done client-side because the effective date
+      // depends on status (verified_at → completed_at → due_at). See
+      // _choreEffectiveDate. Volume is small (one household's chores).
+      final results = await Future.wait([
+        eventsQuery.order('starts_at'),
+        Supabase.instance.client
+            .from('meal_plans')
+            .select('*, recipe:household_recipes(id, title)')
+            .eq('household_id', householdId)
+            .gte('planned_for', monthStartDateStr)
+            .lte('planned_for', monthEndDateStr)
+            .order('planned_for'),
+        Supabase.instance.client
+            .from('chores')
+            .select('*, assignee:household_members!assigned_to_member_id(display_name)')
+            .eq('household_id', householdId),
+      ]);
+
+      final events = List<Map<String, dynamic>>.from(results[0]);
+      final meals = List<Map<String, dynamic>>.from(results[1]);
+      final allChores = List<Map<String, dynamic>>.from(results[2]);
+
+      final chores = allChores.where((c) {
+        final effective = _choreEffectiveDate(c);
+        if (effective == null) return false;
+        return !effective.isBefore(monthStart) && !effective.isAfter(monthEnd);
+      }).toList();
 
       setState(() {
-        _events = List<Map<String, dynamic>>.from(events);
+        _events = events;
+        _meals = meals;
+        _chores = chores;
         _isLoading = false;
       });
     } catch (_) {
@@ -128,11 +163,49 @@ class _CalendarScreenState extends State<CalendarScreen>
     }
   }
 
+  String _isoDate(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  // Chore status flow: assigned → in_progress → pending_verification (kid sets
+  // completed_at) → verified (admin sets verified_at). Calendar shows verified
+  // chores on verified_at; pending-verification chores on completed_at; everything
+  // else on due_at. Returns null if the chore has no usable date (it then
+  // doesn't appear on the calendar).
+  DateTime? _choreEffectiveDate(Map<String, dynamic> chore) {
+    final status = chore['status'] as String?;
+    if (status == 'verified' && chore['verified_at'] != null) {
+      return DateTime.tryParse(chore['verified_at'] as String);
+    }
+    if (status == 'pending_verification' && chore['completed_at'] != null) {
+      return DateTime.tryParse(chore['completed_at'] as String);
+    }
+    if (chore['due_at'] != null) {
+      return DateTime.tryParse(chore['due_at'] as String);
+    }
+    return null;
+  }
+
   List<Map<String, dynamic>> _eventsForDay(DateTime day) {
     return _events.where((e) {
       final startsAt = DateTime.tryParse(e['starts_at'] ?? '');
       if (startsAt == null) return false;
       return startsAt.year == day.year && startsAt.month == day.month && startsAt.day == day.day;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _mealsForDay(DateTime day) {
+    final iso = _isoDate(day);
+    return _meals.where((m) => m['planned_for'] == iso).toList();
+  }
+
+  List<Map<String, dynamic>> _choresForDay(DateTime day) {
+    return _chores.where((c) {
+      final effective = _choreEffectiveDate(c);
+      if (effective == null) return false;
+      return effective.year == day.year &&
+          effective.month == day.month &&
+          effective.day == day.day;
     }).toList();
   }
 
@@ -147,7 +220,7 @@ class _CalendarScreenState extends State<CalendarScreen>
         tags: _tags,
         members: _members,
       ),
-    ).then((_) => _loadEvents());
+    ).then((_) => _loadCalendarData());
   }
 
   Future<void> _deleteEvent(String eventId) async {
@@ -156,7 +229,7 @@ class _CalendarScreenState extends State<CalendarScreen>
           .from('calendar_events')
           .delete()
           .eq('id', eventId);
-      _loadEvents();
+      _loadCalendarData();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -200,7 +273,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                             selected: _filterTagId == null,
                             onSelected: (_) {
                               setState(() => _filterTagId = null);
-                              _loadEvents();
+                              _loadCalendarData();
                             },
                           );
                         }
@@ -212,7 +285,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                           selected: _filterTagId == tagId,
                           onSelected: (_) {
                             setState(() => _filterTagId = _filterTagId == tagId ? null : tagId);
-                            _loadEvents();
+                            _loadCalendarData();
                           },
                         );
                       },
@@ -231,7 +304,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                           setState(() {
                             _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
                           });
-                          _loadEvents();
+                          _loadCalendarData();
                         },
                         icon: const Icon(Icons.chevron_left_rounded),
                       ),
@@ -244,7 +317,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                           setState(() {
                             _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
                           });
-                          _loadEvents();
+                          _loadCalendarData();
                         },
                         icon: const Icon(Icons.chevron_right_rounded),
                       ),
@@ -280,7 +353,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                   ),
                   const SizedBox(height: 8),
                   Expanded(
-                    child: _buildDayEvents(),
+                    child: _buildDayItems(),
                   ),
                 ],
               ],
@@ -316,6 +389,10 @@ class _CalendarScreenState extends State<CalendarScreen>
       final isToday = _isSameDay(day, DateTime.now());
       final isSelected = _selectedDay != null && _isSameDay(day, _selectedDay!);
       final dayEvents = _eventsForDay(day);
+      final dayMeals = _mealsForDay(day);
+      final dayChores = _choresForDay(day);
+      final hasAnyIndicator =
+          dayEvents.isNotEmpty || dayMeals.isNotEmpty || dayChores.isNotEmpty;
 
       cells.add(
         GestureDetector(
@@ -336,20 +413,32 @@ class _CalendarScreenState extends State<CalendarScreen>
                     fontSize: 14,
                   ),
                 ),
-                if (dayEvents.isNotEmpty)
+                if (hasAnyIndicator)
                   Positioned(
                     bottom: 2,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: dayEvents.take(3).map((e) {
-                        final color = _parseColor(e['tag']?['color'] ?? e['color_override']);
-                        return Container(
-                          width: 5,
-                          height: 5,
-                          margin: const EdgeInsets.symmetric(horizontal: 1),
-                          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                        );
-                      }).toList(),
+                      children: [
+                        ...dayEvents.take(3).map((e) {
+                          final color = _parseColor(e['tag']?['color'] ?? e['color_override']);
+                          return Container(
+                            width: 5,
+                            height: 5,
+                            margin: const EdgeInsets.symmetric(horizontal: 1),
+                            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                          );
+                        }),
+                        if (dayMeals.isNotEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 1),
+                            child: Icon(Icons.restaurant, size: 8, color: AppColors.coral),
+                          ),
+                        if (dayChores.isNotEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 1),
+                            child: Icon(Icons.checklist, size: 8, color: AppColors.skyBlue),
+                          ),
+                      ],
                     ),
                   ),
               ],
@@ -372,12 +461,14 @@ class _CalendarScreenState extends State<CalendarScreen>
     );
   }
 
-  Widget _buildDayEvents() {
+  Widget _buildDayItems() {
     if (_selectedDay == null) return const SizedBox();
 
     final dayEvents = _eventsForDay(_selectedDay!);
+    final dayMeals = _mealsForDay(_selectedDay!);
+    final dayChores = _choresForDay(_selectedDay!);
 
-    if (dayEvents.isEmpty) {
+    if (dayEvents.isEmpty && dayMeals.isEmpty && dayChores.isEmpty) {
       return Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -387,25 +478,92 @@ class _CalendarScreenState extends State<CalendarScreen>
             children: [
               const Text('📋', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 12),
-              Text('No events', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              Text(
+                'Nothing planned for this day',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 4),
-              Text('Tap + to add an event for this day.', style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                'Tap + to add an event for this day.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
           ),
         ),
       );
     }
 
-    return ListView.builder(
+    const mealOrder = {
+      'breakfast': 0,
+      'lunch': 1,
+      'dinner': 2,
+      'snack': 3,
+      'other': 4,
+    };
+    final sortedMeals = [...dayMeals]
+      ..sort((a, b) {
+        final aOrder = mealOrder[a['meal_type']] ?? 5;
+        final bOrder = mealOrder[b['meal_type']] ?? 5;
+        return aOrder.compareTo(bOrder);
+      });
+
+    const choreOrder = {
+      'overdue': 0,
+      'assigned': 1,
+      'in_progress': 2,
+      'pending_verification': 3,
+      'verified': 4,
+      'rejected': 5,
+      'cancelled': 6,
+    };
+    final sortedChores = [...dayChores]
+      ..sort((a, b) {
+        final aOrder = choreOrder[a['status']] ?? 7;
+        final bOrder = choreOrder[b['status']] ?? 7;
+        return aOrder.compareTo(bOrder);
+      });
+
+    return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: dayEvents.length,
-      itemBuilder: (context, i) {
-        final event = dayEvents[i];
-        return _EventCard(
-          event: event,
-          onDelete: () => _deleteEvent(event['id']),
-        );
-      },
+      children: [
+        for (final event in dayEvents)
+          _EventCard(
+            event: event,
+            onDelete: () => _deleteEvent(event['id']),
+          ),
+        for (final meal in sortedMeals)
+          _MealRow(
+            meal: meal,
+            onTap: () => _openMeal(meal),
+          ),
+        for (final chore in sortedChores)
+          _ChoreRow(
+            chore: chore,
+            onTap: () => _openChore(chore),
+          ),
+      ],
+    );
+  }
+
+  void _openMeal(Map<String, dynamic> meal) {
+    final recipeId = meal['recipe']?['id'] as String?;
+    if (recipeId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => RecipeDetailScreen(recipeId: recipeId),
+      ),
+    );
+  }
+
+  void _openChore(Map<String, dynamic> chore) {
+    final choreId = chore['id'] as String?;
+    if (choreId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => ChoreDetailScreen(choreId: choreId),
+      ),
     );
   }
 
@@ -783,6 +941,163 @@ class _AddEventSheetState extends State<_AddEventSheet> {
                   : const Text('Create event'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MealRow extends StatelessWidget {
+  const _MealRow({required this.meal, required this.onTap});
+
+  final Map<String, dynamic> meal;
+  final VoidCallback onTap;
+
+  static const _mealTypeLabels = {
+    'breakfast': 'Breakfast',
+    'lunch': 'Lunch',
+    'dinner': 'Dinner',
+    'snack': 'Snack',
+    'other': 'Meal',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final mealType = meal['meal_type'] as String?;
+    final mealTypeLabel = _mealTypeLabels[mealType] ?? 'Meal';
+    final recipeTitle = meal['recipe']?['title'] as String?;
+    final customTitle = meal['custom_title'] as String?;
+    final title = recipeTitle ?? customTitle ?? mealTypeLabel;
+    final hasRecipe = meal['recipe']?['id'] != null;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: hasRecipe ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.coral.withValues(alpha: .15),
+                child: Icon(Icons.restaurant, size: 18, color: AppColors.coral),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      mealTypeLabel,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppColors.coral,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasRecipe)
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoreRow extends StatelessWidget {
+  const _ChoreRow({required this.chore, required this.onTap});
+
+  final Map<String, dynamic> chore;
+  final VoidCallback onTap;
+
+  static const _statusLabels = {
+    'assigned': 'Assigned',
+    'in_progress': 'In progress',
+    'pending_verification': 'Awaiting review',
+    'verified': 'Verified',
+    'rejected': 'Rejected',
+    'overdue': 'Overdue',
+    'cancelled': 'Cancelled',
+  };
+
+  static const _doneStatuses = {'verified', 'pending_verification'};
+
+  @override
+  Widget build(BuildContext context) {
+    final title = chore['title'] as String? ?? 'Chore';
+    final status = chore['status'] as String?;
+    final statusLabel = _statusLabels[status] ?? status ?? '';
+    final assigneeName = chore['assignee']?['display_name'] as String?;
+    final points = chore['point_value'] as int?;
+    final isDone = _doneStatuses.contains(status);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.skyBlue.withValues(alpha: .15),
+                child: Icon(
+                  isDone ? Icons.check_circle_outline : Icons.checklist,
+                  size: 18,
+                  color: AppColors.skyBlue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            decoration: isDone ? TextDecoration.lineThrough : null,
+                            color: isDone ? Colors.grey : null,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        statusLabel,
+                        if (assigneeName != null) assigneeName,
+                        if (points != null) '${points}pts',
+                      ].where((s) => s.isNotEmpty).join(' · '),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
         ),
       ),
     );
