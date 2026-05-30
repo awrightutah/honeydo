@@ -12,6 +12,7 @@ import 'feedback_screen.dart';
 import 'notification_preferences_screen.dart';
 import 'data_export_screen.dart';
 import 'necessity_categories_screen.dart';
+import 'tag_management_screen.dart';
 
 /// Settings screen for profile, household, and app configuration.
 class SettingsScreen extends StatefulWidget {
@@ -533,6 +534,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NecessityCategoriesScreen()),
+              ),
+            ),
+          if (Permissions.canManageTags(_myMembership) && _household != null)
+            ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: const Text('Manage Tags'),
+              subtitle: const Text('Customize tags for events, meals, and chores'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => TagManagementScreen(
+                    householdId: _household!['id'] as String,
+                  ),
+                ),
               ),
             ),
 

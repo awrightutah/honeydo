@@ -98,4 +98,10 @@ class Permissions {
   /// (announcements_screen) — not in the spec's Disallowed list but
   /// follows the same admin-only pattern.
   static bool canManageAnnouncements(Map<String, dynamic>? m) => isAdmin(m);
+
+  /// Can create, edit, or delete calendar_tags (the color/emoji labels
+  /// applied to events, meals, and chores). Phase 2 of Bug 1 calendar
+  /// feature. Backed by the admin-only RLS policies on calendar_tags
+  /// (migration 0023).
+  static bool canManageTags(Map<String, dynamic>? m) => isAdmin(m);
 }

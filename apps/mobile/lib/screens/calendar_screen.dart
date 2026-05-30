@@ -4,8 +4,10 @@ import '../theme/app_theme.dart';
 import '../services/active_member_service.dart';
 import '../services/realtime_service.dart';
 import '../utils/membership.dart';
+import '../utils/permissions.dart';
 import 'recipe_detail_screen.dart';
 import 'chore_detail_screen.dart';
+import 'tag_management_screen.dart';
 
 /// Full calendar screen with month view, custom tags/colors,
 /// event creation, tag filtering, and shared reminders.
@@ -257,14 +259,17 @@ class _CalendarScreenState extends State<CalendarScreen>
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Tag filter
-                if (_tags.isNotEmpty)
+                // Tag filter — also visible to admins when empty so they
+                // always have a path to the management screen.
+                if (_tags.isNotEmpty || Permissions.canManageTags(_myMembership))
                   SizedBox(
                     height: 44,
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       scrollDirection: Axis.horizontal,
-                      itemCount: _tags.length + 1,
+                      itemCount: _tags.length +
+                          1 +
+                          (Permissions.canManageTags(_myMembership) ? 1 : 0),
                       separatorBuilder: (_, __) => const SizedBox(width: 8),
                       itemBuilder: (context, i) {
                         if (i == 0) {
@@ -275,6 +280,23 @@ class _CalendarScreenState extends State<CalendarScreen>
                               setState(() => _filterTagId = null);
                               _loadCalendarData();
                             },
+                          );
+                        }
+                        if (i > _tags.length) {
+                          // Admin-only Manage chip at the end of the row.
+                          return ActionChip(
+                            avatar: const Icon(Icons.tune, size: 16),
+                            label: const Text(
+                              'Manage',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => TagManagementScreen(
+                                  householdId: _household!['id'] as String,
+                                ),
+                              ),
+                            ),
                           );
                         }
                         final tag = _tags[i - 1];
